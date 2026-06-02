@@ -415,6 +415,13 @@ select.select-input option { background: var(--win); color: var(--ink); }
 .dlg-foot .ghost:disabled { opacity: .5; }
 .dlg-foot .solid { border: 0; background: var(--accent); color: #fff; border-radius: 7px; padding: 8px 16px; font-weight: 700; font-size: 12px; margin-left: auto; }
 [dir="rtl"] .dlg-foot .solid { margin-left: 0; margin-right: auto; }
+.dlg-foot .danger { border: 0; background: #d64545; color: #fff; border-radius: 7px; padding: 8px 16px; font-weight: 700; font-size: 12px; margin-left: auto; }
+.dlg-foot .danger:hover { background: #c23a3a; }
+[dir="rtl"] .dlg-foot .danger { margin-left: 0; margin-right: auto; }
+
+.confirm-dlg { max-width: 400px; }
+.confirm-body { padding: 18px 16px 4px; }
+.confirm-body p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--ink); }
 
 /* ---------- M6: three-pane, focus, about ---------- */
 .rail {
@@ -460,10 +467,12 @@ select.select-input option { background: var(--win); color: var(--ink); }
 
 /* ---------- PRD2 §7: markdown guide carousel ---------- */
 .guide-dlg { max-width: 640px; }
-.guide { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }
+/* Fixed height so the footer (and Next button) never shifts between steps. */
+.guide { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; height: 340px; overflow: hidden; }
 .guide-step-head h4 { margin: 0 0 4px; font-size: 15px; color: var(--ink); }
+.guide-step-head { flex: none; }
 .guide-step-head p { margin: 0; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
-.guide-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.guide-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; flex: 1; min-height: 0; }
 .guide-src {
   margin: 0; padding: 14px; border-radius: 9px; background: var(--fill);
   border: 1px solid var(--stroke); font-family: var(--mono); font-size: 12px;
@@ -471,7 +480,7 @@ select.select-input option { background: var(--win); color: var(--ink); }
 }
 .guide-rendered {
   margin: 0; padding: 14px; border-radius: 9px; background: var(--reading-bg);
-  border: 1px solid var(--stroke); max-width: none; font-size: 13px;
+  border: 1px solid var(--stroke); max-width: none; font-size: 13px; overflow: auto;
 }
 .guide-rendered > :first-child { margin-top: 0; }
 .guide-rendered > :last-child { margin-bottom: 0; }

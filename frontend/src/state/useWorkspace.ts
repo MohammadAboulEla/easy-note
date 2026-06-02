@@ -16,6 +16,9 @@ export interface WorkspaceApi {
   notes: Note[];
   activeId: string | null;
   activeNote: Note | null;
+  // id of the most recently created note, so the editor can open it in edit mode
+  // (an existing note keeps whatever view the user last chose).
+  freshNoteId: string | null;
   saving: boolean;
   loaded: boolean;
   select: (id: string) => void;
@@ -33,6 +36,7 @@ export function useWorkspace(): WorkspaceApi {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [freshNoteId, setFreshNoteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
@@ -50,11 +54,12 @@ export function useWorkspace(): WorkspaceApi {
     });
   }, []);
 
-  const select = useCallback((id: string) => setActiveId(id), []);
+  const select = useCallback((id: string) => { setFreshNoteId(null); setActiveId(id); }, []);
 
   const newNote = useCallback(async (folderId = '') => {
     const n = await CreateNote(folderId, 'Untitled');
     setNotes(prev => [...prev, n]);
+    setFreshNoteId(n.id);
     setActiveId(n.id);
   }, []);
 
@@ -115,7 +120,7 @@ export function useWorkspace(): WorkspaceApi {
   const activeNote = notes.find(n => n.id === activeId) ?? null;
 
   return {
-    folders, notes, activeId, activeNote, saving, loaded,
+    folders, notes, activeId, activeNote, freshNoteId, saving, loaded,
     select, newNote, newFolder, renameNote, renameFolder, removeNote, removeFolder, setBody, flush,
   };
 }

@@ -20,7 +20,7 @@ function App() {
   const ws = useWorkspace();
   const editorRef = useRef<EditorHandle>(null);
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const [modal, setModal] = useState<'settings' | 'about' | 'guide' | null>(null);
   const [stats, setStats] = useState<EditorStats>(ZERO_STATS);
 
@@ -44,6 +44,7 @@ function App() {
     <Editor
       ref={editorRef}
       noteId={active.id}
+      isNew={ws.freshNoteId === active.id}
       body={active.body}
       onChange={b => ws.setBody(active.id, b)}
       onStats={setStats}

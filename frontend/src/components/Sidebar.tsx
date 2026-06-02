@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react';
 import { Folder, Note, WorkspaceApi } from '../state/useWorkspace';
 import { FolderIcon } from './icons';
+import { ConfirmDialog } from './ConfirmDialog';
+
+// Pending deletion awaiting confirmation.
+type Pending =
+  | { kind: 'note'; id: string; name: string }
+  | { kind: 'folder'; id: string; name: string }
+  | null;
 
 interface Props {
   api: WorkspaceApi;
@@ -16,6 +23,14 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
   const [query, setQuery] = useState('');
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<Editing>(null);
+  const [pendingDelete, setPendingDelete] = useState<Pending>(null);
+
+  const confirmDelete = () => {
+    if (!pendingDelete) return;
+    if (pendingDelete.kind === 'note') api.removeNote(pendingDelete.id);
+    else api.removeFolder(pendingDelete.id);
+    setPendingDelete(null);
+  };
 
   const topFolders = useMemo(
     () => folders.filter(f => !f.parentId).sort((a, b) => a.name.localeCompare(b.name)),
@@ -89,7 +104,7 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
       <button
         className="row-del"
         aria-label={`Delete ${n.title}`}
-        onClick={e => { e.stopPropagation(); api.removeNote(n.id); }}
+        onClick={e => { e.stopPropagation(); setPendingDelete({ kind: 'note', id: n.id, name: n.title || 'Untitled' }); }}
       >✕</button>
     </div>
   );
@@ -109,7 +124,7 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
           <button className="row-add" aria-label={`New note in ${f.name}`}
             onClick={e => { e.stopPropagation(); api.newNote(f.id); }}>+</button>
           <button className="row-del" aria-label={`Delete ${f.name}`}
-            onClick={e => { e.stopPropagation(); api.removeFolder(f.id); }}>✕</button>
+            onClick={e => { e.stopPropagation(); setPendingDelete({ kind: 'folder', id: f.id, name: f.name }); }}>✕</button>
         </div>
         {open ? kids.map(n => noteRow(n)) : null}
       </div>
@@ -159,6 +174,19 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
           </>
         )}
       </div>
+
+      {pendingDelete ? (
+        <ConfirmDialog
+          title={pendingDelete.kind === 'note' ? 'Delete note' : 'Delete notebook'}
+          message={
+            pendingDelete.kind === 'note'
+              ? `Delete “${pendingDelete.name}”? This can’t be undone.`
+              : `Delete the notebook “${pendingDelete.name}”? Its notes will be moved to Unfiled. This can’t be undone.`
+          }
+          onConfirm={confirmDelete}
+          onClose={() => setPendingDelete(null)}
+        />
+      ) : null}
     </aside>
   );
 }

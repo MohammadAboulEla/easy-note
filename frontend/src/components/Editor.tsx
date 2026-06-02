@@ -17,6 +17,7 @@ export interface EditorHandle {
 
 interface Props {
   noteId: string;
+  isNew?: boolean;
   body: string;
   onChange: (body: string) => void;
   onStats: (stats: EditorStats) => void;
@@ -64,9 +65,9 @@ const PREFIX: Partial<Record<InsertKind, string>> = {
 };
 
 export const Editor = forwardRef<EditorHandle, Props>(function Editor(
-  { noteId, body, onChange, onStats, focus, behavior }, ref,
+  { noteId, isNew, body, onChange, onStats, focus, behavior }, ref,
 ) {
-  const [view, setView] = useState<ViewMode>('edit');
+  const [view, setView] = useState<ViewMode>('preview');
   const [html, setHtml] = useState('');
   const [ai, setAi] = useState<AiState>(IDLE_AI);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -95,7 +96,10 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   const doRedo = () => applySnapshot(history.redo());
 
   useEffect(() => {
-    setView('edit'); setAi(IDLE_AI);
+    // Switching notes preserves the user's last-chosen view (edit/preview);
+    // only a freshly created note forces edit mode so they can start typing.
+    if (isNew) setView('edit');
+    setAi(IDLE_AI);
     history.reset(body, [body.length, body.length]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteId]);

@@ -80,6 +80,7 @@ func (a *App) persistWorkspace() {
 
 func seedWorkspace() Workspace {
 	t := now()
+	bt := "```" // fenced code-block delimiter (raw literals can't contain backticks)
 	personal := Folder{ID: uuid.NewString(), Name: "Personal"}
 	work := Folder{ID: uuid.NewString(), Name: "Work"}
 	return Workspace{
@@ -89,6 +90,10 @@ func seedWorkspace() Workspace {
 				Body: "# Welcome to EasyNote\n\nA minimalist, **markdown-first** notebook with built-in AI editing.\n\n- Write in markdown\n- Toggle between edit and preview\n- Select a paragraph and ask AI to tweak it\n\n> Tip: open Settings to configure your AI provider and tune the appearance."},
 			{ID: uuid.NewString(), Title: "Reading list", FolderID: personal.ID, CreatedAt: t, UpdatedAt: t,
 				Body: "# Reading list\n\nMy books for **2026**.\n\n- Dune\n- Project Hail Mary\n- The Overstory\n\n> A quote I liked."},
+			{ID: uuid.NewString(), Title: "Markdown cheatsheet", FolderID: personal.ID, CreatedAt: t, UpdatedAt: t,
+				Body: "# Markdown cheatsheet\n\nA quick tour of what the preview can render.\n\n## Text\n\n**Bold**, *italic*, ~~strikethrough~~, `inline code`, and [a link](https://wails.io).\n\n## Lists\n\n1. First step\n2. Second step\n   - a nested bullet\n   - another one\n3. Third step\n\n- [x] Done task\n- [ ] Pending task\n\n## Table\n\n| Feature      | Status | Notes              |\n| ------------ | :----: | ------------------ |\n| Editor       |   ✅   | plain textarea     |\n| AI tweak     |   ✅   | select + prompt    |\n| Cloud sync   |   ❌   | not in v1          |\n\n## Quote\n\n> Simplicity is the ultimate sophistication.\n\n---\n\nThat horizontal rule above is a `---`."},
+			{ID: uuid.NewString(), Title: "Python snippets", FolderID: work.ID, CreatedAt: t, UpdatedAt: t,
+				Body: "# Python snippets\n\nSyntax highlighting is rendered server-side (goldmark + Chroma).\n\n## Fibonacci\n\n" + bt + "python\ndef fib(n: int) -> int:\n    \"\"\"Return the nth Fibonacci number.\"\"\"\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\n\nif __name__ == \"__main__\":\n    print([fib(i) for i in range(10)])\n" + bt + "\n\n## A small class\n\n" + bt + "python\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Note:\n    title: str\n    body: str = \"\"\n\n    def word_count(self) -> int:\n        return len(self.body.split())\n" + bt + "\n\n## Complexity table\n\n| Operation | List | Dict |\n| --------- | :--: | :--: |\n| lookup    | O(n) | O(1) |\n| append    | O(1) | —    |\n| delete    | O(n) | O(1) |\n"},
 			{ID: uuid.NewString(), Title: "Roadmap", FolderID: work.ID, CreatedAt: t, UpdatedAt: t,
 				Body: "# Roadmap\n\n## Q3\n\n- Ship editor\n- Wire AI tweak\n"},
 		},
