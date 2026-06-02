@@ -28,7 +28,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
           <div className="ver">{ver ? `Version ${ver.version} · build ${ver.build}` : ' '}</div>
           <p>A minimalist, markdown-first notebook with built-in AI editing. Light &amp; dark, LTR &amp; RTL.</p>
           <div className="links">
-            <button onClick={() => BrowserOpenURL('https://wails.io')}>GitHubRepo</button>
+            <button onClick={() => BrowserOpenURL('https://github.com/MohammadAboulEla/easy-note')}>GitHubRepo</button>
           </div>
         </div>
         <div className="dlg-foot" style={{ justifyContent: 'center' }}>
