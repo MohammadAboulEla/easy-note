@@ -17,13 +17,20 @@ func main() {
 
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "memo",
-		Width:  1024,
-		Height: 768,
+		Title:     "EasyNote",
+		Width:     1100,
+		Height:    760,
+		MinWidth:  720,
+		MinHeight: 480,
+		// Frameless: the custom (LTR-locked) title bar inside the app fully
+		// replaces the OS window chrome. Drag via `--wails-draggable:drag`.
+		Frameless: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
-		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
+		// Matches the dark theme --paper token (#16171a) so there is no flash
+		// of a mismatched background before the frontend paints.
+		BackgroundColour: &options.RGBA{R: 0x16, G: 0x17, B: 0x1a, A: 1},
 		OnStartup:        app.startup,
 		Bind: []interface{}{
 			app,

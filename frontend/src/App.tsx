@@ -1,28 +1,103 @@
-import {useState} from 'react';
-import logo from './assets/images/logo-universal.png';
-import './App.css';
-import {Greet} from "../wailsjs/go/main/App";
+import { useEffect, useRef, useState } from 'react';
+import { useSettings } from './state/useSettings';
+import { useWorkspace } from './state/useWorkspace';
+import { TitleBar } from './components/TitleBar';
+import { MenuBar } from './components/MenuBar';
+import { StatusBar, EditorStats } from './components/StatusBar';
+import { Sidebar } from './components/Sidebar';
+import { RailList } from './components/RailList';
+import { Editor, EditorHandle } from './components/Editor';
+import { SettingsDialog } from './components/SettingsDialog';
+import { AboutDialog } from './components/AboutDialog';
 
+const ZERO_STATS: EditorStats = { words: 0, ln: 1, col: 1 };
+
+// M6 — three switchable layouts (Classic / Three-pane / Focus) + About dialog.
 function App() {
-    const [resultText, setResultText] = useState("Please enter your name below 👇");
-    const [name, setName] = useState('');
-    const updateName = (e: any) => setName(e.target.value);
-    const updateResultText = (result: string) => setResultText(result);
+  const settingsApi = useSettings();
+  const { settings } = settingsApi;
+  const ws = useWorkspace();
+  const editorRef = useRef<EditorHandle>(null);
 
-    function greet() {
-        Greet(name).then(updateResultText);
-    }
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [modal, setModal] = useState<'settings' | 'about' | null>(null);
+  const [stats, setStats] = useState<EditorStats>(ZERO_STATS);
 
-    return (
-        <div id="App">
-            <img src={logo} id="logo" alt="logo"/>
-            <div id="result" className="result">{resultText}</div>
-            <div id="input" className="input-box">
-                <input id="name" className="input" onChange={updateName} autoComplete="off" name="input" type="text"/>
-                <button className="btn" onClick={greet}>Greet</button>
-            </div>
-        </div>
-    )
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      if (e.key === 's') { e.preventDefault(); ws.flush(); }
+      else if (e.key === 'n') { e.preventDefault(); ws.newNote(); }
+      else if (e.key === '\\') { e.preventDefault(); setSidebarCollapsed(c => !c); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [ws]);
+
+  const active = ws.activeNote;
+  const layout = settings.layout;
+  const focusMode = layout === 'focus';
+  const mode = focusMode ? 'Focus mode' : 'Markdown';
+
+  const editorPane = active ? (
+    <Editor
+      ref={editorRef}
+      noteId={active.id}
+      body={active.body}
+      onChange={b => ws.setBody(active.id, b)}
+      onStats={setStats}
+      forceView={focusMode ? 'preview' : undefined}
+    />
+  ) : (
+    <div className="editor">
+      <div className="editor-empty">
+        {ws.loaded ? 'No note selected. Create one with “New Note”.' : 'Loading…'}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="app">
+      <TitleBar title={active ? `EasyNote — ${active.title}.md` : 'EasyNote'} />
+
+      {focusMode ? null : (
+        <MenuBar
+          settingsApi={settingsApi}
+          onNewNote={() => ws.newNote()}
+          onNewFolder={() => ws.newFolder()}
+          onSave={() => ws.flush()}
+          onToggleSidebar={() => setSidebarCollapsed(c => !c)}
+          onSettings={() => setModal('settings')}
+          onAbout={() => setModal('about')}
+          onInsert={k => editorRef.current?.format(k)}
+        />
+      )}
+
+      <div className="app-body">
+        {focusMode ? (
+          <>
+            <button className="focus-exit" onClick={() => settingsApi.setLayout('classic')}>‹ Exit focus</button>
+            {editorPane}
+          </>
+        ) : layout === 'three-pane' ? (
+          <>
+            <RailList api={ws} />
+            {editorPane}
+          </>
+        ) : (
+          <>
+            <Sidebar api={ws} collapsed={sidebarCollapsed} onExpand={() => setSidebarCollapsed(false)} />
+            {editorPane}
+          </>
+        )}
+      </div>
+
+      <StatusBar mode={mode} stats={active ? stats : ZERO_STATS} dir={settings.dir} saved={!ws.saving} />
+
+      {modal === 'settings' ? <SettingsDialog api={settingsApi} onClose={() => setModal(null)} /> : null}
+      {modal === 'about' ? <AboutDialog onClose={() => setModal(null)} /> : null}
+    </div>
+  );
 }
 
-export default App
+export default App;
