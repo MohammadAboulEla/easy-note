@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import appImage from '../assets/images/app-image.png';
 
 export function AboutDialog({ onClose }: { onClose: () => void }) {
   useEffect(() => {
@@ -17,7 +18,7 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
           <button className="x" aria-label="Close" onClick={onClose}>✕</button>
         </div>
         <div className="about">
-          <div className="logo">E</div>
+          <img className="logo" src={appImage} alt="EasyNote" />
           <h3>EasyNote</h3>
           <div className="ver">Version 1.0.0 · build 240</div>
           <p>A minimalist, markdown-first notebook with built-in AI editing. Light &amp; dark, LTR &amp; RTL.</p>

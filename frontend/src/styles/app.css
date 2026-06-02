@@ -39,7 +39,7 @@
   background: var(--chrome); border-bottom: 1px solid var(--stroke);
   direction: ltr;
 }
-.titlebar .appicon { width: 14px; height: 14px; border-radius: 4px; background: var(--accent); flex: none; }
+.titlebar .appicon { width: 24px; height: 24px; border-radius: 4px; object-fit: contain; flex: none; -webkit-user-drag: none; user-select: none; }
 .titlebar .title { font-size: 12px; color: var(--ink-soft); font-weight: 700; }
 .titlebar .wctrl { margin-left: auto; display: flex; gap: 2px; }
 .titlebar .wc {
@@ -501,8 +501,8 @@ select.select-input option { background: var(--win); color: var(--ink); }
 .about-dlg { max-width: 360px; }
 .about { text-align: center; padding: 26px 22px; }
 .about .logo {
-  width: 56px; height: 56px; border-radius: 14px; background: var(--accent); margin: 0 auto 14px;
-  display: grid; place-items: center; color: #fff; font-family: var(--hand); font-size: 30px;
+  width: 64px; height: 64px; border-radius: 14px; margin: 0 auto 14px;
+  object-fit: contain; display: block;
 }
 .about > h3 { margin: 0 0 2px; font-size: 18px; }
 .about .ver { font-size: 12px; color: var(--ink-soft); }
