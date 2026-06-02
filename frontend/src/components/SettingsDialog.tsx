@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ACCENTS, FontChoice, INK_COLORS, PAGE_BGS, ThemeChoice } from '../state/settings';
+import { ACCENTS, AiCommand, DEFAULT_AI_BEHAVIOR, FontChoice, INK_COLORS, PAGE_BGS, ThemeChoice } from '../state/settings';
 import { PROVIDER_PRESETS } from '../state/providers';
 import { SettingsApi } from '../state/useSettings';
 import { TestConnection } from '../../wailsjs/go/main/App';
 import { main } from '../../wailsjs/go/models';
 
-type Tab = 'api' | 'appearance' | 'editor' | 'shortcuts';
+type Tab = 'api' | 'ai' | 'appearance' | 'editor' | 'shortcuts';
 type TestState = { status: 'idle' | 'testing' | 'ok' | 'err'; msg: string };
 
 const THEME_PREVIEW: Record<ThemeChoice, React.CSSProperties> = {
@@ -15,8 +15,9 @@ const THEME_PREVIEW: Record<ThemeChoice, React.CSSProperties> = {
 };
 
 export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: () => void }) {
-  const { settings, setTheme, setAccent, patchAppearance, patchApi } = api;
+  const { settings, setTheme, setAccent, patchAppearance, patchApi, patchAi } = api;
   const a = settings.appearance;
+  const ai = settings.ai;
   const [tab, setTab] = useState<Tab>('api');
   const [showKey, setShowKey] = useState(false);
   const [test, setTest] = useState<TestState>({ status: 'idle', msg: '' });
@@ -46,6 +47,33 @@ export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: ()
     }
   }
 
+  // ---- AI command editor helpers ----
+  const updateCommand = (id: string, patch: Partial<AiCommand>) =>
+    patchAi({ commands: ai.commands.map(c => (c.id === id ? { ...c, ...patch } : c)) });
+  const deleteCommand = (id: string) =>
+    patchAi({ commands: ai.commands.filter(c => c.id !== id) });
+  const addCommand = () =>
+    patchAi({
+      commands: [
+        ...ai.commands,
+        { id: `cmd-${ai.commands.length + 1}-${ai.commands.reduce((n, c) => n + c.label.length, 0)}`, label: 'New command', instruction: '' },
+      ],
+    });
+  const restoreCommands = () => patchAi({ commands: DEFAULT_AI_BEHAVIOR.commands });
+
+  // Live preview of the effective system message assembled from the knobs.
+  const effectiveSystem = (() => {
+    const base = ai.systemPrompt.trim() || 'You are a precise writing assistant embedded in a notes app. Rewrite the user\'s text per the instruction.';
+    const bits = [base];
+    if (ai.tone && ai.tone !== 'neutral') bits.push(`Use a ${ai.tone} tone.`);
+    if (ai.language.trim()) bits.push(`Write the result in ${ai.language.trim()}.`);
+    if (ai.verbosity === 'concise') bits.push('Be concise.');
+    if (ai.verbosity === 'detailed') bits.push('Be thorough and detailed.');
+    if (ai.preserveMarkdown) bits.push('Preserve the markdown structure of the text.');
+    bits.push('Return ONLY the rewritten text — no preamble, no quotes, no explanations.');
+    return bits.join(' ');
+  })();
+
   const slider = (
     label: string, value: number, min: number, max: number, step: number,
     onChange: (n: number) => void, fmt: (n: number) => string,
@@ -70,10 +98,10 @@ export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: ()
         </div>
 
         <div className="dlg-nav" role="tablist">
-          {(['api', 'appearance', 'editor', 'shortcuts'] as Tab[]).map(t => (
+          {(['api', 'ai', 'appearance', 'editor', 'shortcuts'] as Tab[]).map(t => (
             <button key={t} role="tab" aria-selected={tab === t}
               className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
-              {t === 'api' ? 'API' : t[0].toUpperCase() + t.slice(1)}
+              {t === 'api' ? 'API' : t === 'ai' ? 'AI' : t[0].toUpperCase() + t.slice(1)}
             </button>
           ))}
         </div>
@@ -153,6 +181,85 @@ export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: ()
                   {test.status === 'testing' ? 'Testing connection…' : test.msg}
                 </div>
               ) : null}
+            </>
+          ) : null}
+
+          {tab === 'ai' ? (
+            <>
+              <div className="field">
+                <label>System instruction</label>
+                <textarea className="input area" rows={4}
+                  placeholder="You are my editor; keep my voice; prefer plain English…"
+                  value={ai.systemPrompt}
+                  onChange={e => patchAi({ systemPrompt: e.target.value })} />
+                <div className="desc">A persona / global instruction prepended to every tweak. The single biggest lever on quality. Leave blank for the built-in default.</div>
+              </div>
+
+              <div className="field">
+                <label>Default tone</label>
+                <select className="input select-input" value={ai.tone}
+                  onChange={e => patchAi({ tone: e.target.value })}>
+                  {['neutral', 'professional', 'friendly', 'academic'].map(t =>
+                    <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}</option>)}
+                </select>
+              </div>
+
+              <div className="field">
+                <label>Output language</label>
+                <input className="input" placeholder="Match source (leave blank)"
+                  value={ai.language}
+                  onChange={e => patchAi({ language: e.target.value })} />
+                <div className="desc">e.g. English, Arabic. Blank keeps the source language.</div>
+              </div>
+
+              <div className="field">
+                <label>Verbosity</label>
+                <div className="opt-row">
+                  {(['concise', 'balanced', 'detailed']).map(v => (
+                    <div key={v} className={`opt${ai.verbosity === v ? ' on' : ''}`}
+                      onClick={() => patchAi({ verbosity: v })}>
+                      {v[0].toUpperCase() + v.slice(1)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {slider('Creativity (temperature)', ai.temperature, 0, 1, 0.05,
+                n => patchAi({ temperature: Math.round(n * 100) / 100 }), n => n.toFixed(2))}
+
+              <div className="row-between">
+                <div>
+                  <div className="lbl">Preserve markdown</div>
+                  <div className="sub">Keep the markdown structure of the selection</div>
+                </div>
+                <button className={`toggle${ai.preserveMarkdown ? '' : ' off'}`}
+                  aria-pressed={ai.preserveMarkdown}
+                  onClick={() => patchAi({ preserveMarkdown: !ai.preserveMarkdown })} />
+              </div>
+
+              <div className="fieldset">
+                <div className="legend">Custom commands</div>
+                <div className="desc">These appear as one-click chips in the “Tweak with AI” overlay. The selected text is what gets rewritten.</div>
+                {ai.commands.map(c => (
+                  <div key={c.id} className="cmd-row">
+                    <input className="input" value={c.label} placeholder="Label"
+                      onChange={e => updateCommand(c.id, { label: e.target.value })} />
+                    <input className="input" value={c.instruction} placeholder="Instruction (or preset: improve, grammar…)"
+                      onChange={e => updateCommand(c.id, { instruction: e.target.value })} />
+                    <button className="row-del-btn" aria-label={`Delete ${c.label}`}
+                      onClick={() => deleteCommand(c.id)}>✕</button>
+                  </div>
+                ))}
+                <div className="cmd-actions">
+                  <button className="ghost" onClick={addCommand}>+ Add command</button>
+                  <button className="ghost" onClick={restoreCommands}>Restore defaults</button>
+                </div>
+              </div>
+
+              <div className="field">
+                <label>Effective system message</label>
+                <div className="sys-preview">{effectiveSystem}</div>
+              </div>
             </>
           ) : null}
 

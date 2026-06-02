@@ -14,11 +14,15 @@ type App struct {
 
 	ws       Workspace
 	settings Settings
+
+	// inflight maps a tweak request ID to its cancel func so CancelTweak can
+	// abort an in-progress AI call. Guarded by mu.
+	inflight map[string]context.CancelFunc
 }
 
 // NewApp creates a new App application struct.
 func NewApp() *App {
-	return &App{}
+	return &App{inflight: make(map[string]context.CancelFunc)}
 }
 
 // startup is called when the app starts. The context is saved so we can call

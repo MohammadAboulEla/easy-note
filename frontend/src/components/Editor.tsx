@@ -6,7 +6,8 @@ import { renderMarkdown } from '../lib/markdown';
 import { EditorStats } from './StatusBar';
 import { AiOverlay, AiState } from './AiOverlay';
 import { useHistory } from '../state/useHistory';
-import { TweakText } from '../../wailsjs/go/main/App';
+import { AiBehavior } from '../state/settings';
+import { TweakText, CancelTweak } from '../../wailsjs/go/main/App';
 
 export interface EditorHandle {
   format: (kind: InsertKind) => void;
@@ -20,7 +21,11 @@ interface Props {
   onChange: (body: string) => void;
   onStats: (stats: EditorStats) => void;
   focus?: boolean;
+  behavior: AiBehavior;
 }
+
+// Backend preset action keys; anything else is sent as a free-text prompt.
+const PRESET_ACTIONS = new Set(['improve', 'shorten', 'grammar', 'formal', 'summarize']);
 
 type ViewMode = 'edit' | 'preview';
 
@@ -59,7 +64,7 @@ const PREFIX: Partial<Record<InsertKind, string>> = {
 };
 
 export const Editor = forwardRef<EditorHandle, Props>(function Editor(
-  { noteId, body, onChange, onStats, focus }, ref,
+  { noteId, body, onChange, onStats, focus, behavior }, ref,
 ) {
   const [view, setView] = useState<ViewMode>('edit');
   const [html, setHtml] = useState('');
@@ -68,6 +73,8 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   const areaRef = useRef<HTMLDivElement>(null);
   const pendingSel = useRef<[number, number] | null>(null);
   const history = useHistory();
+  const reqId = useRef(0);          // increments per tweak; identifies the request
+  const activeReq = useRef<string>(''); // id of the request currently in flight
 
   const effectiveView = view;
 
@@ -167,13 +174,39 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   }
 
   async function runTweak(action: string, prompt = '') {
+    const id = `tweak-${++reqId.current}`;
+    activeReq.current = id;
     setAi(s => ({ ...s, phase: 'loading' }));
     try {
-      const result = await TweakText({ action, prompt, text: ai.sel.text } as any);
+      const result = await TweakText({
+        id, action, prompt, text: ai.sel.text,
+        systemPrompt: behavior.systemPrompt,
+        tone: behavior.tone,
+        language: behavior.language,
+        verbosity: behavior.verbosity,
+        temperature: behavior.temperature,
+        preserveMarkdown: behavior.preserveMarkdown,
+      } as any);
+      if (activeReq.current !== id) return; // superseded or canceled
       setAi(s => ({ ...s, phase: 'diff', result }));
     } catch (err: any) {
+      // If the user canceled (cleared the active request), swallow the error.
+      if (activeReq.current !== id) return;
       setAi(s => ({ ...s, phase: 'error', error: String(err?.message ?? err) }));
     }
+  }
+
+  // Run a custom command: a known preset goes through `action`, else `prompt`.
+  function runInstruction(instruction: string) {
+    if (PRESET_ACTIONS.has(instruction)) runTweak(instruction);
+    else runTweak('', instruction);
+  }
+
+  function cancelTweak() {
+    const id = activeReq.current;
+    activeReq.current = ''; // mark canceled so the pending await is swallowed
+    if (id) CancelTweak(id);
+    setAi(IDLE_AI);
   }
 
   function replaceWith(text: string, insertBelow: boolean) {
@@ -331,14 +364,16 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
           />
           <AiOverlay
             state={ai}
+            commands={behavior.commands}
             onQuick={action => runTweak(action)}
             onAsk={() => setAi(s => ({ ...s, phase: 'prompt' }))}
             onPromptChange={v => setAi(s => ({ ...s, prompt: v }))}
             onRunPrompt={() => runTweak('', ai.prompt)}
-            onChip={(action, prompt) => runTweak(action, prompt)}
+            onCommand={instruction => runInstruction(instruction)}
             onReplace={() => replaceWith(ai.result, false)}
             onInsert={() => replaceWith(ai.result, true)}
             onDiscard={() => setAi(IDLE_AI)}
+            onCancel={cancelTweak}
             onRetry={() => runTweak('', ai.prompt)}
           />
         </div>

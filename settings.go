@@ -32,6 +32,24 @@ type Appearance struct {
 	LineSpacing  float64 `json:"lineSpacing"`
 }
 
+// AiCommand is a user-defined reusable tweak action shown as an overlay chip.
+type AiCommand struct {
+	ID          string `json:"id"`
+	Label       string `json:"label"`
+	Instruction string `json:"instruction"`
+}
+
+// AiBehavior holds user-tunable AI tweak settings (persona, tone, etc.).
+type AiBehavior struct {
+	SystemPrompt     string      `json:"systemPrompt"`
+	Tone             string      `json:"tone"`
+	Language         string      `json:"language"`
+	Verbosity        string      `json:"verbosity"`
+	Temperature      float64     `json:"temperature"`
+	PreserveMarkdown bool        `json:"preserveMarkdown"`
+	Commands         []AiCommand `json:"commands"`
+}
+
 // Settings is the full persisted preference set.
 type Settings struct {
 	Theme      string     `json:"theme"`  // light | dark | system
@@ -39,6 +57,7 @@ type Settings struct {
 	Layout     string     `json:"layout"` // classic | three-pane | focus
 	Appearance Appearance `json:"appearance"`
 	API        ApiConfig  `json:"api"`
+	AI         AiBehavior `json:"ai"`
 }
 
 func defaultSettings() Settings {
@@ -63,6 +82,21 @@ func defaultSettings() Settings {
 			Stream:    false,
 			UseEnvKey: false,
 			EnvVar:    "OPENAI_API_KEY",
+		},
+		AI: AiBehavior{
+			SystemPrompt:     "",
+			Tone:             "neutral",
+			Language:         "",
+			Verbosity:        "balanced",
+			Temperature:      0.4,
+			PreserveMarkdown: true,
+			Commands: []AiCommand{
+				{ID: "improve", Label: "Improve writing", Instruction: "improve"},
+				{ID: "summarize", Label: "Summarize", Instruction: "summarize"},
+				{ID: "formal", Label: "Make formal", Instruction: "formal"},
+				{ID: "translate", Label: "Translate", Instruction: "Translate this text to English."},
+				{ID: "grammar", Label: "Fix grammar", Instruction: "grammar"},
+			},
 		},
 	}
 }

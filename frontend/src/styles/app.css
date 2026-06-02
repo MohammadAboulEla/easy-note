@@ -337,6 +337,26 @@
 }
 .input:focus { border-color: var(--accent); }
 .input.mono { font-family: var(--mono); letter-spacing: .02em; }
+.input.area { height: auto; padding: 8px 10px; line-height: 1.5; resize: vertical; font-family: var(--ui); }
+
+/* AI tab — custom command editor + system-message preview */
+.cmd-row { display: flex; gap: 7px; align-items: center; }
+.cmd-row .input { flex: 1; }
+.cmd-row .input:first-child { flex: 0 0 34%; }
+.row-del-btn {
+  border: 1.5px solid var(--stroke); background: transparent; color: var(--ink-soft);
+  border-radius: 6px; padding: 0 9px; height: 34px; flex: none; font-size: 12px;
+}
+.row-del-btn:hover { background: #e5484d; color: #fff; border-color: #e5484d; }
+.cmd-actions { display: flex; gap: 8px; }
+.cmd-actions .ghost {
+  border: 1.5px solid var(--stroke); background: transparent; color: var(--ink);
+  border-radius: 7px; padding: 7px 12px; font-weight: 700; font-size: 12px;
+}
+.sys-preview {
+  font-size: 12px; line-height: 1.55; color: var(--ink-soft); background: var(--fill);
+  border: 1px solid var(--stroke); border-radius: 8px; padding: 10px 12px; user-select: text;
+}
 select.select-input { appearance: auto; cursor: pointer; padding-right: 6px; }
 select.select-input option { background: var(--win); color: var(--ink); }
 .input-wrap { position: relative; display: flex; }
@@ -437,6 +457,32 @@ select.select-input option { background: var(--win); color: var(--ink); }
 .editor.focus { flex: 1; min-height: 0; }
 .editor.focus .editor-area, .editor.focus .preview { flex: 1; min-height: 0; }
 .editor.focus .md-input { padding-top: 44px; }
+
+/* ---------- PRD2 §7: markdown guide carousel ---------- */
+.guide-dlg { max-width: 640px; }
+.guide { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }
+.guide-step-head h4 { margin: 0 0 4px; font-size: 15px; color: var(--ink); }
+.guide-step-head p { margin: 0; font-size: 12.5px; color: var(--ink-soft); line-height: 1.5; }
+.guide-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.guide-src {
+  margin: 0; padding: 14px; border-radius: 9px; background: var(--fill);
+  border: 1px solid var(--stroke); font-family: var(--mono); font-size: 12px;
+  line-height: 1.6; color: var(--ink); white-space: pre-wrap; overflow: auto; user-select: text;
+}
+.guide-rendered {
+  margin: 0; padding: 14px; border-radius: 9px; background: var(--reading-bg);
+  border: 1px solid var(--stroke); max-width: none; font-size: 13px;
+}
+.guide-rendered > :first-child { margin-top: 0; }
+.guide-rendered > :last-child { margin-bottom: 0; }
+.guide-foot { justify-content: space-between; }
+.guide-dots { display: flex; gap: 7px; align-items: center; }
+.guide-dots .dot {
+  width: 8px; height: 8px; border-radius: 50%; border: 0; padding: 0;
+  background: var(--fill-2); cursor: pointer;
+}
+.guide-dots .dot.on { background: var(--accent); }
+.guide-foot .solid { margin-left: 0; }
 
 .about-dlg { max-width: 360px; }
 .about { text-align: center; padding: 26px 22px; }

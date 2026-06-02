@@ -13,6 +13,7 @@ export interface MenuBarProps {
   onInsert?: (kind: InsertKind) => void;
   onUndo?: () => void;
   onRedo?: () => void;
+  onGuide?: () => void;
 }
 
 export type InsertKind = 'bold' | 'italic' | 'h1' | 'h2' | 'quote' | 'code' | 'link' | 'list';
@@ -146,6 +147,8 @@ export function MenuBar(props: MenuBarProps) {
       </>)}
 
       {menu('help', 'Help', <>
+        <Item label="Markdown Guide" onClick={run(props.onGuide)} />
+        <Sep />
         <Item label="About EasyNote" onClick={run(props.onAbout)} />
       </>)}
     </div>

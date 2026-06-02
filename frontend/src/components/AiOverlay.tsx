@@ -2,6 +2,9 @@
 // replacement; this renders the right surface for each phase, positioned at
 // (x, y) relative to the editor area.
 
+import { useEffect } from 'react';
+import { AiCommand } from '../state/settings';
+
 export type AiPhase = 'idle' | 'bubble' | 'prompt' | 'loading' | 'diff' | 'error';
 
 export interface AiState {
@@ -16,35 +19,48 @@ export interface AiState {
 
 interface Props {
   state: AiState;
+  commands: AiCommand[];
   onQuick: (action: string) => void;
   onAsk: () => void;
   onPromptChange: (v: string) => void;
   onRunPrompt: () => void;
-  onChip: (action: string, prompt?: string) => void;
+  onCommand: (instruction: string) => void;
   onReplace: () => void;
   onInsert: () => void;
   onDiscard: () => void;
+  onCancel: () => void;
   onRetry: () => void;
 }
 
-const CHIPS: { label: string; action: string; prompt?: string }[] = [
-  { label: 'Improve writing', action: 'improve' },
-  { label: 'Summarize', action: 'summarize' },
-  { label: 'Make formal', action: 'formal' },
-  { label: 'Translate', action: '', prompt: 'Translate this text to English.' },
-  { label: 'Fix grammar', action: 'grammar' },
-];
-
 export function AiOverlay(props: Props) {
-  const { state } = props;
+  const { state, commands } = props;
+
+  // While the request is in flight, Esc cancels it.
+  const loading = state.phase === 'loading';
+  const { onCancel } = props;
+  useEffect(() => {
+    if (!loading) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); onCancel(); } };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [loading, onCancel]);
+
   if (state.phase === 'idle') return null;
+
+  // The first command drives the bubble's accent quick-action; the rest stay as
+  // the standard quick buttons / chips.
+  const primary = commands[0];
 
   return (
     <div className="ai-layer" data-phase={state.phase} style={{ left: state.x, top: state.y }}>
       {state.phase === 'bubble' ? (
         <div className="bubble">
           <span className="ai-dot">✦</span>
-          <button className="b accent" onClick={() => props.onQuick('improve')}>Improve</button>
+          {primary ? (
+            <button className="b accent" onClick={() => props.onCommand(primary.instruction)}>{primary.label}</button>
+          ) : (
+            <button className="b accent" onClick={() => props.onQuick('improve')}>Improve</button>
+          )}
           <span className="div" />
           <button className="b" onClick={() => props.onQuick('shorten')}>Shorten</button>
           <button className="b" onClick={() => props.onQuick('grammar')}>Fix grammar</button>
@@ -65,11 +81,11 @@ export function AiOverlay(props: Props) {
             onKeyDown={e => { if (e.key === 'Enter') props.onRunPrompt(); }}
           />
           <div className="chips">
-            {CHIPS.map((c, i) => (
+            {commands.map((c, i) => (
               <button
-                key={c.label}
+                key={c.id}
                 className={`c${i === 0 ? ' accent' : ''}`}
-                onClick={() => props.onChip(c.action, c.prompt)}
+                onClick={() => props.onCommand(c.instruction)}
               >{c.label}</button>
             ))}
           </div>
@@ -84,6 +100,9 @@ export function AiOverlay(props: Props) {
         <div className="ai-pop">
           <div className="row1"><span className="ai-dot">✦</span><b>Thinking…</b></div>
           <div className="ai-spinner"><span /><span /><span /></div>
+          <div className="actions">
+            <button className="no" onClick={props.onCancel}>Cancel</button>
+          </div>
         </div>
       ) : null}
 

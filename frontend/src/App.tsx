@@ -9,6 +9,7 @@ import { RailList } from './components/RailList';
 import { Editor, EditorHandle } from './components/Editor';
 import { SettingsDialog } from './components/SettingsDialog';
 import { AboutDialog } from './components/AboutDialog';
+import { GuideDialog } from './components/GuideDialog';
 
 const ZERO_STATS: EditorStats = { words: 0, ln: 1, col: 1 };
 
@@ -20,7 +21,7 @@ function App() {
   const editorRef = useRef<EditorHandle>(null);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [modal, setModal] = useState<'settings' | 'about' | null>(null);
+  const [modal, setModal] = useState<'settings' | 'about' | 'guide' | null>(null);
   const [stats, setStats] = useState<EditorStats>(ZERO_STATS);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ function App() {
       onChange={b => ws.setBody(active.id, b)}
       onStats={setStats}
       focus={focusMode}
+      behavior={settings.ai}
     />
   ) : (
     <div className="editor">
@@ -69,6 +71,7 @@ function App() {
           onToggleSidebar={() => setSidebarCollapsed(c => !c)}
           onSettings={() => setModal('settings')}
           onAbout={() => setModal('about')}
+          onGuide={() => setModal('guide')}
           onInsert={k => editorRef.current?.format(k)}
           onUndo={() => editorRef.current?.undo()}
           onRedo={() => editorRef.current?.redo()}
@@ -107,6 +110,7 @@ function App() {
 
       {modal === 'settings' ? <SettingsDialog api={settingsApi} onClose={() => setModal(null)} /> : null}
       {modal === 'about' ? <AboutDialog onClose={() => setModal(null)} /> : null}
+      {modal === 'guide' ? <GuideDialog onClose={() => setModal(null)} /> : null}
     </div>
   );
 }

@@ -2,7 +2,7 @@
 // loads them from the Go backend on mount, and persists changes (debounced).
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Appearance, DEFAULT_SETTINGS, Dir, LayoutMode, Settings, ThemeChoice, applySettings,
+  AiBehavior, Appearance, DEFAULT_SETTINGS, Dir, LayoutMode, Settings, ThemeChoice, applySettings,
 } from './settings';
 import { GetSettings, SaveSettings } from '../../wailsjs/go/main/App';
 import { main } from '../../wailsjs/go/models';
@@ -19,6 +19,8 @@ export interface SettingsApi {
   setAccent: (hex: string) => void;
   patchAppearance: (patch: Partial<Appearance>) => void;
   patchApi: (patch: Partial<Settings['api']>) => void;
+  patchAi: (patch: Partial<AiBehavior>) => void;
+  setAiBehavior: (ai: AiBehavior) => void;
 }
 
 export function useSettings(): SettingsApi {
@@ -60,8 +62,13 @@ export function useSettings(): SettingsApi {
     setSettings(s => ({ ...s, appearance: { ...s.appearance, ...patch } })), []);
   const patchApi = useCallback((patch: Partial<Settings['api']>) =>
     setSettings(s => ({ ...s, api: { ...s.api, ...patch } })), []);
+  const patchAi = useCallback((patch: Partial<AiBehavior>) =>
+    setSettings(s => ({ ...s, ai: { ...s.ai, ...patch } })), []);
+  const setAiBehavior = useCallback((ai: AiBehavior) =>
+    setSettings(s => ({ ...s, ai })), []);
 
   return {
-    settings, setSettings, setTheme, toggleTheme, setDir, setLayout, setAccent, patchAppearance, patchApi,
+    settings, setSettings, setTheme, toggleTheme, setDir, setLayout, setAccent,
+    patchAppearance, patchApi, patchAi, setAiBehavior,
   };
 }

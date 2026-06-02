@@ -29,13 +29,45 @@ export interface Appearance {
   lineSpacing: number;   // unitless
 }
 
+export interface AiCommand { id: string; label: string; instruction: string }
+
+export interface AiBehavior {
+  systemPrompt: string;      // persona / global instruction prepended to every tweak
+  tone: string;              // neutral | professional | friendly | academic | custom
+  language: string;          // '' = match source, or 'English', 'Arabic', …
+  verbosity: string;         // concise | balanced | detailed
+  temperature: number;       // 0–1 creativity
+  preserveMarkdown: boolean; // keep markdown structure of the selection
+  commands: AiCommand[];     // custom reusable actions → overlay chips
+}
+
 export interface Settings {
   theme: ThemeChoice;
   dir: Dir;
   layout: LayoutMode;
   appearance: Appearance;
   api: ApiConfig;
+  ai: AiBehavior;
 }
+
+// Seed commands mirror today's hardcoded overlay chips so behavior is unchanged
+// out of the box. `instruction` maps to the backend preset action where one
+// exists, else a free-text prompt.
+export const DEFAULT_AI_BEHAVIOR: AiBehavior = {
+  systemPrompt: '',
+  tone: 'neutral',
+  language: '',
+  verbosity: 'balanced',
+  temperature: 0.4,
+  preserveMarkdown: true,
+  commands: [
+    { id: 'improve', label: 'Improve writing', instruction: 'improve' },
+    { id: 'summarize', label: 'Summarize', instruction: 'summarize' },
+    { id: 'formal', label: 'Make formal', instruction: 'formal' },
+    { id: 'translate', label: 'Translate', instruction: 'Translate this text to English.' },
+    { id: 'grammar', label: 'Fix grammar', instruction: 'grammar' },
+  ],
+};
 
 // Default accent swatches surfaced in the top controls & Settings.
 export const ACCENTS = ['#5b6cff', '#1f9d6b', '#e0613a', '#a755d4', '#d4a017', '#e5484d'];
@@ -77,6 +109,7 @@ export const DEFAULT_SETTINGS: Settings = {
     useEnvKey: false,
     envVar: 'OPENAI_API_KEY',
   },
+  ai: DEFAULT_AI_BEHAVIOR,
 };
 
 const FONT_VARS: Record<'sans' | 'serif' | 'mono', string> = {

@@ -17,9 +17,19 @@ import (
 // TweakRequest is a request to rewrite a selected piece of text. Either Action
 // (a preset) or Prompt (a custom instruction) drives the rewrite.
 type TweakRequest struct {
+	ID     string `json:"id"`     // client-generated request id (for cancellation)
 	Action string `json:"action"` // improve | shorten | grammar | "" (use Prompt)
 	Prompt string `json:"prompt"`
 	Text   string `json:"text"`
+
+	// Optional behavior knobs from Settings → AI. Empty/zero values fall back to
+	// the built-in defaults so out-of-the-box behavior is unchanged.
+	SystemPrompt     string  `json:"systemPrompt"`
+	Tone             string  `json:"tone"`
+	Language         string  `json:"language"`
+	Verbosity        string  `json:"verbosity"`
+	Temperature      float64 `json:"temperature"`
+	PreserveMarkdown bool    `json:"preserveMarkdown"`
 }
 
 // --- minimal OpenAI-compatible chat types ---
@@ -121,7 +131,7 @@ func (a *App) resolveAPIKey(cfg ApiConfig) (string, error) {
 }
 
 // postChat performs a non-streaming chat completion and returns the message text.
-func postChat(ctx context.Context, cfg ApiConfig, messages []chatMessage) (string, error) {
+func postChat(ctx context.Context, cfg ApiConfig, messages []chatMessage, temperature float64) (string, error) {
 	if strings.TrimSpace(cfg.APIKey) == "" {
 		return "", errors.New("no API key configured — add one in Settings → API")
 	}
@@ -132,7 +142,7 @@ func postChat(ctx context.Context, cfg ApiConfig, messages []chatMessage) (strin
 	payload := chatRequest{
 		Model:       cfg.Model,
 		Messages:    messages,
-		Temperature: 0.4,
+		Temperature: temperature,
 		Stream:      false,
 	}
 	body, err := json.Marshal(payload)
@@ -169,7 +179,40 @@ func postChat(ctx context.Context, cfg ApiConfig, messages []chatMessage) (strin
 	return strings.TrimSpace(parsed.Choices[0].Message.Content), nil
 }
 
+const defaultSystemPrompt = "You are a precise writing assistant embedded in a notes app. " +
+	"Rewrite the user's text per the instruction."
+
+// composeSystem builds the system message from the user's behavior knobs,
+// falling back to the default persona when systemPrompt is empty.
+func composeSystem(req TweakRequest) string {
+	base := strings.TrimSpace(req.SystemPrompt)
+	if base == "" {
+		base = defaultSystemPrompt
+	}
+	var b strings.Builder
+	b.WriteString(base)
+	if t := strings.TrimSpace(req.Tone); t != "" && t != "neutral" {
+		b.WriteString(" Use a " + t + " tone.")
+	}
+	if l := strings.TrimSpace(req.Language); l != "" {
+		b.WriteString(" Write the result in " + l + ".")
+	}
+	switch req.Verbosity {
+	case "concise":
+		b.WriteString(" Be concise.")
+	case "detailed":
+		b.WriteString(" Be thorough and detailed.")
+	}
+	if req.PreserveMarkdown {
+		b.WriteString(" Preserve the markdown structure of the text.")
+	}
+	b.WriteString(" Return ONLY the rewritten text — no preamble, no quotes, no explanations, no markdown code fences.")
+	return b.String()
+}
+
 // TweakText rewrites the selected text using the saved API configuration.
+// A per-request cancelable context is registered under reqIn.ID so CancelTweak
+// can abort the in-flight HTTP call.
 func (a *App) TweakText(reqIn TweakRequest) (string, error) {
 	a.mu.Lock()
 	cfg := a.settings.API
@@ -184,19 +227,46 @@ func (a *App) TweakText(reqIn TweakRequest) (string, error) {
 	}
 	cfg.APIKey = key
 
-	system := "You are a precise writing assistant embedded in a notes app. " +
-		"Rewrite the user's text per the instruction. " +
-		"Return ONLY the rewritten text — no preamble, no quotes, no explanations, no markdown code fences."
+	temp := reqIn.Temperature
+	if temp <= 0 || temp > 1 {
+		temp = 0.4 // safe default / out-of-range guard
+	}
+
+	system := composeSystem(reqIn)
 	user := actionInstruction(reqIn.Action, reqIn.Prompt) + "\n\nText:\n" + reqIn.Text
 
-	ctx := a.ctx
-	if ctx == nil {
-		ctx = context.Background()
+	parent := a.ctx
+	if parent == nil {
+		parent = context.Background()
 	}
+	ctx, cancel := context.WithTimeout(parent, 120*time.Second)
+	defer cancel()
+
+	if reqIn.ID != "" {
+		a.mu.Lock()
+		a.inflight[reqIn.ID] = cancel
+		a.mu.Unlock()
+		defer func() {
+			a.mu.Lock()
+			delete(a.inflight, reqIn.ID)
+			a.mu.Unlock()
+		}()
+	}
+
 	return postChat(ctx, cfg, []chatMessage{
 		{Role: "system", Content: system},
 		{Role: "user", Content: user},
-	})
+	}, temp)
+}
+
+// CancelTweak aborts an in-flight TweakText identified by id (no-op if unknown).
+func (a *App) CancelTweak(id string) {
+	a.mu.Lock()
+	cancel := a.inflight[id]
+	a.mu.Unlock()
+	if cancel != nil {
+		cancel()
+	}
 }
 
 // TestConnection validates the given (possibly unsaved) config with a tiny call.
@@ -216,7 +286,7 @@ func (a *App) TestConnection(cfg ApiConfig) (string, error) {
 
 	_, err = postChat(tctx, cfg, []chatMessage{
 		{Role: "user", Content: "Reply with the single word: ok"},
-	})
+	}, 0.4)
 	if err != nil {
 		return "", err
 	}
