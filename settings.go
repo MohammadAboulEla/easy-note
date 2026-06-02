@@ -24,6 +24,7 @@ type ApiConfig struct {
 type Appearance struct {
 	Accent       string  `json:"accent"`
 	PageBg       string  `json:"pageBg"`
+	InkColor     string  `json:"inkColor"`
 	ContentWidth int     `json:"contentWidth"`
 	Font         string  `json:"font"`
 	CustomFont   string  `json:"customFont"`
@@ -48,6 +49,7 @@ func defaultSettings() Settings {
 		Appearance: Appearance{
 			Accent:       "#e0613a",
 			PageBg:       "", // "" = follow theme
+			InkColor:     "", // "" = follow theme
 			ContentWidth: 680,
 			Font:         "sans",
 			CustomFont:   "",

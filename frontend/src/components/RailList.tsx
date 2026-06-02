@@ -4,7 +4,13 @@ import { FolderIcon } from './icons';
 
 // Three-pane layout: an icon rail of notebooks + a flat note list + the editor.
 // Scales to many notes; the editor itself is rendered by the parent.
-export function RailList({ api }: { api: WorkspaceApi }) {
+interface Props {
+  api: WorkspaceApi;
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export function RailList({ api, collapsed, onToggleCollapse }: Props) {
   const { folders, notes, activeId } = api;
   const [sel, setSel] = useState<string>('all'); // 'all' | folderId
   const [query, setQuery] = useState('');
@@ -27,6 +33,12 @@ export function RailList({ api }: { api: WorkspaceApi }) {
   return (
     <>
       <aside className="rail">
+        <button
+          className="rail-item"
+          aria-label={collapsed ? 'Show note list' : 'Hide note list'}
+          title={collapsed ? 'Show note list' : 'Hide note list'}
+          onClick={onToggleCollapse}
+        >{collapsed ? '»' : '«'}</button>
         <button className="rail-new" aria-label="New note" onClick={() => api.newNote(sel === 'all' ? '' : sel)}>+</button>
         <button className={`rail-item${sel === 'all' ? ' on' : ''}`} title="All notes" onClick={() => setSel('all')}>◎</button>
         {topFolders.map(f => (
@@ -36,6 +48,7 @@ export function RailList({ api }: { api: WorkspaceApi }) {
         ))}
       </aside>
 
+      {collapsed ? null : (
       <aside className="note-list">
         <div className="search">
           <span className="mag" />
@@ -54,6 +67,7 @@ export function RailList({ api }: { api: WorkspaceApi }) {
           ))}
         </div>
       </aside>
+      )}
     </>
   );
 }

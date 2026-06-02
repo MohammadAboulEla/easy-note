@@ -5,10 +5,13 @@ import { InsertKind } from './MenuBar';
 import { renderMarkdown } from '../lib/markdown';
 import { EditorStats } from './StatusBar';
 import { AiOverlay, AiState } from './AiOverlay';
+import { useHistory } from '../state/useHistory';
 import { TweakText } from '../../wailsjs/go/main/App';
 
 export interface EditorHandle {
   format: (kind: InsertKind) => void;
+  undo: () => void;
+  redo: () => void;
 }
 
 interface Props {
@@ -16,7 +19,7 @@ interface Props {
   body: string;
   onChange: (body: string) => void;
   onStats: (stats: EditorStats) => void;
-  forceView?: ViewMode;
+  focus?: boolean;
 }
 
 type ViewMode = 'edit' | 'preview';
@@ -36,6 +39,18 @@ function lineCol(text: string, pos: number): { ln: number; col: number } {
 }
 function clamp(v: number, lo: number, hi: number): number { return Math.max(lo, Math.min(hi, v)); }
 
+// List-item marker at the start of a line: optional indent, a bullet or ordered
+// marker, and an optional task-list checkbox.
+const LIST_RE = /^(\s*)([-*+]|\d+\.)(\s+)(\[[ xX]\]\s+)?/;
+const INDENT = '  ';
+
+// True if `pos` sits inside an open fenced code block (odd number of ``` before it).
+function insideFence(text: string, pos: number): boolean {
+  const before = text.slice(0, pos);
+  const fences = before.match(/^```/gm);
+  return !!fences && fences.length % 2 === 1;
+}
+
 const WRAP: Partial<Record<InsertKind, [string, string]>> = {
   bold: ['**', '**'], italic: ['*', '*'], code: ['`', '`'], link: ['[', '](https://)'],
 };
@@ -44,7 +59,7 @@ const PREFIX: Partial<Record<InsertKind, string>> = {
 };
 
 export const Editor = forwardRef<EditorHandle, Props>(function Editor(
-  { noteId, body, onChange, onStats, forceView }, ref,
+  { noteId, body, onChange, onStats, focus }, ref,
 ) {
   const [view, setView] = useState<ViewMode>('edit');
   const [html, setHtml] = useState('');
@@ -52,10 +67,31 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   const taRef = useRef<HTMLTextAreaElement>(null);
   const areaRef = useRef<HTMLDivElement>(null);
   const pendingSel = useRef<[number, number] | null>(null);
+  const history = useHistory();
 
-  const effectiveView = forceView ?? view;
+  const effectiveView = view;
 
-  useEffect(() => { setView('edit'); setAi(IDLE_AI); }, [noteId]);
+  // Route every body mutation through here so the custom history stays in sync.
+  // kind 'type' coalesces rapid typing; 'structural' pushes a discrete entry.
+  function commit(next: string, sel: [number, number], kind: 'type' | 'structural') {
+    onChange(next);
+    pendingSel.current = sel;
+    history.push({ body: next, sel }, kind);
+  }
+
+  function applySnapshot(snap: { body: string; sel: [number, number] } | null) {
+    if (!snap) return;
+    onChange(snap.body);
+    pendingSel.current = snap.sel;
+  }
+  const doUndo = () => applySnapshot(history.undo());
+  const doRedo = () => applySnapshot(history.redo());
+
+  useEffect(() => {
+    setView('edit'); setAi(IDLE_AI);
+    history.reset(body, [body.length, body.length]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [noteId]);
   useEffect(() => { if (effectiveView !== 'edit') setAi(IDLE_AI); }, [effectiveView]);
 
   useEffect(() => {
@@ -88,22 +124,28 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   function applyWrap(before: string, after: string) {
     const ta = taRef.current; if (!ta) return;
     const s = ta.selectionStart, e = ta.selectionEnd;
-    onChange(body.slice(0, s) + before + body.slice(s, e) + after + body.slice(e));
-    pendingSel.current = [s + before.length, e + before.length];
+    commit(
+      body.slice(0, s) + before + body.slice(s, e) + after + body.slice(e),
+      [s + before.length, e + before.length],
+      'structural',
+    );
   }
   function applyPrefix(prefix: string) {
     const ta = taRef.current; if (!ta) return;
     const s = ta.selectionStart;
     const lineStart = body.lastIndexOf('\n', s - 1) + 1;
-    onChange(body.slice(0, lineStart) + prefix + body.slice(lineStart));
-    pendingSel.current = [s + prefix.length, s + prefix.length];
+    commit(
+      body.slice(0, lineStart) + prefix + body.slice(lineStart),
+      [s + prefix.length, s + prefix.length],
+      'structural',
+    );
   }
   function format(kind: InsertKind) {
     if (effectiveView !== 'edit') setView('edit');
     const w = WRAP[kind]; if (w) return applyWrap(w[0], w[1]);
     const p = PREFIX[kind]; if (p) applyPrefix(p);
   }
-  useImperativeHandle(ref, () => ({ format }));
+  useImperativeHandle(ref, () => ({ format, undo: doUndo, redo: doRedo }));
 
   // ---- AI tweak ----
   function openBubble(e: React.MouseEvent<HTMLTextAreaElement>) {
@@ -136,10 +178,10 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
     const next = insertBelow
       ? body.slice(0, end) + '\n\n' + text + body.slice(end)
       : body.slice(0, start) + text + body.slice(end);
-    onChange(next);
-    pendingSel.current = insertBelow
+    const sel: [number, number] = insertBelow
       ? [end + 2, end + 2 + text.length]
       : [start, start + text.length];
+    commit(next, sel, 'structural');
     setAi(IDLE_AI);
   }
 
@@ -148,17 +190,112 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
     <button className="fb" title={title} onClick={() => format(kind)}>{label}</button>
   );
 
+  // Plain typing: record into history (coalesced), let React handle the value.
+  const onType = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const ta = e.target;
+    history.push({ body: ta.value, sel: [ta.selectionStart, ta.selectionEnd] }, 'type');
+    onChange(ta.value);
+  };
+
+  // Enter on a list item continues / exits the list. Returns true if handled.
+  function handleEnter(): boolean {
+    const ta = taRef.current; if (!ta) return false;
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    if (s !== e) return false;
+    if (insideFence(body, s)) return false;
+    const lineStart = body.lastIndexOf('\n', s - 1) + 1;
+    const line = body.slice(lineStart, s);
+    const m = LIST_RE.exec(line);
+    if (!m) return false;
+
+    const [, indent, marker, gap, task] = m;
+    const contentAfterMarker = line.slice(m[0].length);
+    // Empty item (marker only) → exit the list / outdent.
+    if (contentAfterMarker.trim() === '') {
+      const next = body.slice(0, lineStart) + body.slice(s);
+      commit(next, [lineStart, lineStart], 'structural');
+      return true;
+    }
+    // Continue the list.
+    let nextMarker = marker;
+    if (/^\d+\.$/.test(marker)) nextMarker = (parseInt(marker, 10) + 1) + '.';
+    const taskPart = task ? '[ ] ' : '';
+    const ins = '\n' + indent + nextMarker + gap + taskPart;
+    const next = body.slice(0, s) + ins + body.slice(e);
+    const caret = s + ins.length;
+    commit(next, [caret, caret], 'structural');
+    return true;
+  }
+
+  // Tab / Shift+Tab: indent or outdent. Handles single caret and multi-line selection.
+  function handleTab(outdent: boolean): boolean {
+    const ta = taRef.current; if (!ta) return false;
+    const s = ta.selectionStart, e = ta.selectionEnd;
+    const firstLineStart = body.lastIndexOf('\n', s - 1) + 1;
+
+    if (s === e && !outdent) {
+      const line = body.slice(firstLineStart, s);
+      // On a list line, indent the whole line; otherwise insert spaces at caret.
+      if (LIST_RE.test(line)) {
+        const next = body.slice(0, firstLineStart) + INDENT + body.slice(firstLineStart);
+        commit(next, [s + INDENT.length, s + INDENT.length], 'structural');
+      } else {
+        const next = body.slice(0, s) + INDENT + body.slice(e);
+        commit(next, [s + INDENT.length, s + INDENT.length], 'structural');
+      }
+      return true;
+    }
+
+    // Selection (or outdent): operate on every covered line.
+    const regionEnd = e;
+    const region = body.slice(firstLineStart, regionEnd);
+    const lines = region.split('\n');
+    let delta = 0, firstDelta = 0;
+    const out = lines.map((ln, i) => {
+      if (outdent) {
+        const m = ln.match(/^( {1,2}|\t)/);
+        if (m) {
+          const removed = m[1].length;
+          if (i === 0) firstDelta = -removed;
+          delta -= removed;
+          return ln.slice(removed);
+        }
+        return ln;
+      }
+      if (i === 0) firstDelta = INDENT.length;
+      delta += INDENT.length;
+      return INDENT + ln;
+    });
+    const next = body.slice(0, firstLineStart) + out.join('\n') + body.slice(regionEnd);
+    commit(next, [Math.max(firstLineStart, s + firstDelta), e + delta], 'structural');
+    return true;
+  }
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') { setAi(IDLE_AI); return; }
-    if (!(e.ctrlKey || e.metaKey)) return;
-    const k = e.key.toLowerCase();
-    if (k === 'b') { e.preventDefault(); format('bold'); }
-    else if (k === 'i') { e.preventDefault(); format('italic'); }
-    else if (k === 'k') { e.preventDefault(); format('link'); }
+
+    if (e.ctrlKey || e.metaKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'z' && !e.shiftKey) { e.preventDefault(); doUndo(); return; }
+      if ((k === 'z' && e.shiftKey) || k === 'y') { e.preventDefault(); doRedo(); return; }
+      if (k === 'b') { e.preventDefault(); format('bold'); return; }
+      if (k === 'i') { e.preventDefault(); format('italic'); return; }
+      if (k === 'k') { e.preventDefault(); format('link'); return; }
+      return;
+    }
+
+    if (e.key === 'Enter' && !e.shiftKey) {
+      if (handleEnter()) e.preventDefault();
+      return;
+    }
+    if (e.key === 'Tab') {
+      if (handleTab(e.shiftKey)) e.preventDefault();
+      return;
+    }
   };
 
   return (
-    <div className="editor">
+    <div className={`editor${focus ? ' focus' : ''}`}>
       <div className="fmtbar">
         {fb('bold', <b>B</b>, 'Bold')}
         {fb('italic', <i>I</i>, 'Italic')}
@@ -167,12 +304,10 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
         {fb('code', '</>', 'Code')}
         {fb('list', '≡', 'List')}
         <span className="sp" />
-        {forceView ? null : (
-          <div className="seg-sm" role="group" aria-label="View mode">
-            <button className={view === 'edit' ? 'on' : ''} onClick={() => setView('edit')}>Edit</button>
-            <button className={view === 'preview' ? 'on' : ''} onClick={() => setView('preview')}>Preview</button>
-          </div>
-        )}
+        <div className="seg-sm" role="group" aria-label="View mode">
+          <button className={view === 'edit' ? 'on' : ''} onClick={() => setView('edit')}>Edit</button>
+          <button className={view === 'preview' ? 'on' : ''} onClick={() => setView('preview')}>Preview</button>
+        </div>
       </div>
 
       {effectiveView === 'edit' ? (
@@ -183,7 +318,7 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
             value={body}
             placeholder="Start writing… select a paragraph to tweak it with AI."
             spellCheck
-            onChange={e => onChange(e.target.value)}
+            onChange={onType}
             onKeyDown={onKeyDown}
             onKeyUp={report}
             onClick={report}

@@ -21,6 +21,7 @@ export interface ApiConfig {
 export interface Appearance {
   accent: string;
   pageBg: string;        // reading-area background tint
+  inkColor: string;      // reading-area text color ('' = follow theme --ink)
   contentWidth: number;  // px
   font: FontChoice;
   customFont: string;    // user-entered system font name (when font === 'custom')
@@ -45,6 +46,13 @@ export const PAGE_BGS = [
   // dark
   '#16171a', '#1e2024', '#202530', '#2b2620', '#1a211c', '#1c1a26', '#0f1012',
 ];
+// Reading-area ink (text) tints — dark inks for light pages, light inks for dark pages.
+export const INK_COLORS = [
+  // dark inks (for light pages)
+  '#2c2c2c', '#3a342c', '#1f2a33', '#33271f',
+  // light inks (for dark pages)
+  '#e9e9ea', '#e7e2d4', '#d4dce7', '#ecd9c8',
+];
 
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',          // per design: default dark
@@ -53,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   appearance: {
     accent: '#e0613a',    // per design: default orange
     pageBg: '',           // '' = follow theme (--paper); a hex picks a fixed tint
+    inkColor: '',         // '' = follow theme (--ink); a hex picks a fixed text color
     contentWidth: 680,
     font: 'sans',
     customFont: '',
@@ -102,6 +111,7 @@ export function applySettings(s: Settings): void {
   const { appearance: a } = s;
   root.style.setProperty('--accent', a.accent);
   root.style.setProperty('--reading-bg', a.pageBg || 'var(--paper)');
+  root.style.setProperty('--reading-ink', a.inkColor || 'var(--ink)');
   root.style.setProperty('--reading-font', fontValue(a));
   root.style.setProperty('--reading-size', `${a.fontSize}px`);
   root.style.setProperty('--reading-leading', String(a.lineSpacing));

@@ -52,6 +52,7 @@
 /* Menu bar + dropdowns */
 .menubar {
   position: relative; z-index: 20;
+  direction: ltr;
   display: flex; align-items: stretch; gap: 2px;
   padding: 3px 8px; background: var(--chrome-2); border-bottom: 1px solid var(--stroke);
 }
@@ -67,7 +68,9 @@
   box-shadow: 0 18px 40px -16px rgba(0,0,0,.5);
   padding: 5px; z-index: 30; display: flex; flex-direction: column; gap: 1px;
 }
-[dir="rtl"] .menu-pop { left: auto; right: 0; }
+/* menubar is forced LTR, so its dropdowns always anchor to the left edge —
+   scope the RTL flip away from anything inside .menubar */
+[dir="rtl"] :not(.menubar) > .menu > .menu-pop { left: auto; right: 0; }
 .mi {
   display: flex; align-items: center; gap: 10px; width: 100%;
   border: 0; background: transparent; color: var(--ink);
@@ -76,7 +79,6 @@
 .mi:hover:not(:disabled) { background: var(--accent-soft); }
 .mi:disabled { color: var(--ink-soft); opacity: .5; cursor: default; }
 .mi .accel { margin-left: auto; color: var(--ink-soft); font-size: 11px; }
-[dir="rtl"] .mi .accel { margin-left: 0; margin-right: auto; }
 .mi .tick { width: 14px; color: var(--accent); flex: none; }
 .msep { height: 1px; background: var(--stroke); margin: 4px 6px; }
 .menu-pop .grp-label {
@@ -118,6 +120,10 @@
   background: var(--win); color: var(--ink-soft); font-size: 14px; flex: none;
 }
 .rail-new { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.sb-head { display: flex; align-items: center; gap: 8px; flex: none; }
+.sb-head .btn-new { flex: 1; }
+.sb-head .collapse-toggle { width: 32px; height: 32px; }
 
 .btn-new {
   display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -220,7 +226,7 @@
    font family/size/line-spacing, page background, and content width. */
 .md-input {
   flex: 1; min-height: 0; width: 100%; max-width: var(--reading-width); margin: 0 auto;
-  border: 0; outline: none; resize: none; background: transparent; color: var(--ink);
+  border: 0; outline: none; resize: none; background: transparent; color: var(--reading-ink);
   font-family: var(--reading-font); font-size: var(--reading-size); line-height: var(--reading-leading);
   padding: 28px 32px; user-select: text;
 }
@@ -425,6 +431,13 @@ select.select-input option { background: var(--win); color: var(--ink); }
 [dir="rtl"] .focus-exit { left: auto; right: 14px; }
 .app-body { position: relative; }
 
+/* Focus mode: the editor is the only body child — fill the window edge-to-edge,
+   editable, with no chrome but the format bar. Extra top padding clears the
+   floating Exit-focus button. */
+.editor.focus { flex: 1; min-height: 0; }
+.editor.focus .editor-area, .editor.focus .preview { flex: 1; min-height: 0; }
+.editor.focus .md-input { padding-top: 44px; }
+
 .about-dlg { max-width: 360px; }
 .about { text-align: center; padding: 26px 22px; }
 .about .logo {
@@ -442,7 +455,7 @@ select.select-input option { background: var(--win); color: var(--ink); }
 .real {
   max-width: var(--reading-width); margin: 0 auto; padding: 30px 32px 60px;
   font-family: var(--reading-font); font-size: var(--reading-size);
-  line-height: var(--reading-leading); color: var(--ink); user-select: text;
+  line-height: var(--reading-leading); color: var(--reading-ink); user-select: text;
 }
 [dir="rtl"] .real { text-align: right; }
 .real h1 { font-size: 1.7em; margin: 0 0 .5em; line-height: 1.25; }

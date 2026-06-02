@@ -28,6 +28,7 @@
 
   /* --- reading area (user-configurable; defaults below) --- */
   --reading-bg: var(--paper);
+  --reading-ink: var(--ink);
   --reading-font: var(--ui);
   --reading-size: 16px;
   --reading-leading: 1.7;

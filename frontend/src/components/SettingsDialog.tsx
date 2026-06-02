@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ACCENTS, FontChoice, PAGE_BGS, ThemeChoice } from '../state/settings';
+import { ACCENTS, FontChoice, INK_COLORS, PAGE_BGS, ThemeChoice } from '../state/settings';
 import { PROVIDER_PRESETS } from '../state/providers';
 import { SettingsApi } from '../state/useSettings';
 import { TestConnection } from '../../wailsjs/go/main/App';
@@ -193,6 +193,18 @@ export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: ()
                     ))}
                   </div>
                   <div className="desc">Sepia &amp; soft tints reduce glare for long reading.</div>
+                </div>
+                <div className="field">
+                  <label>Text color</label>
+                  <div className="theme-swatches">
+                    <div className={`sw auto${!a.inkColor ? ' on' : ''}`} title="Follow theme"
+                      style={{ color: 'var(--accent)' }} onClick={() => patchAppearance({ inkColor: '' })}>A</div>
+                    {INK_COLORS.map(hex => (
+                      <div key={hex} className={`sw${a.inkColor === hex ? ' on' : ''}`}
+                        style={{ background: hex, color: hex }} onClick={() => patchAppearance({ inkColor: hex })} />
+                    ))}
+                  </div>
+                  <div className="desc">Reading-area ink. Pair a light ink with a dark page.</div>
                 </div>
                 {slider('Content width', a.contentWidth, 540, 900, 10,
                   n => patchAppearance({ contentWidth: n }), n => `${n}px`)}

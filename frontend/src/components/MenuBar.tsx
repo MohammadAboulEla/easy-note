@@ -11,6 +11,8 @@ export interface MenuBarProps {
   onSettings?: () => void;
   onAbout?: () => void;
   onInsert?: (kind: InsertKind) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export type InsertKind = 'bold' | 'italic' | 'h1' | 'h2' | 'quote' | 'code' | 'link' | 'list';
@@ -92,8 +94,8 @@ export function MenuBar(props: MenuBarProps) {
       </>)}
 
       {menu('edit', 'Edit', <>
-        <Item label="Undo" accel="Ctrl+Z" onClick={run(() => document.execCommand('undo'))} />
-        <Item label="Redo" accel="Ctrl+Y" onClick={run(() => document.execCommand('redo'))} />
+        <Item label="Undo" accel="Ctrl+Z" onClick={run(props.onUndo)} />
+        <Item label="Redo" accel="Ctrl+Y" onClick={run(props.onRedo)} />
         <Sep />
         <Item label="Cut" accel="Ctrl+X" onClick={run(() => document.execCommand('cut'))} />
         <Item label="Copy" accel="Ctrl+C" onClick={run(() => document.execCommand('copy'))} />

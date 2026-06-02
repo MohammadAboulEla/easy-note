@@ -27,6 +27,7 @@ export namespace main {
 	export class Appearance {
 	    accent: string;
 	    pageBg: string;
+	    inkColor: string;
 	    contentWidth: number;
 	    font: string;
 	    customFont: string;
@@ -41,6 +42,7 @@ export namespace main {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.accent = source["accent"];
 	        this.pageBg = source["pageBg"];
+	        this.inkColor = source["inkColor"];
 	        this.contentWidth = source["contentWidth"];
 	        this.font = source["font"];
 	        this.customFont = source["customFont"];

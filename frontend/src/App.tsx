@@ -46,7 +46,7 @@ function App() {
       body={active.body}
       onChange={b => ws.setBody(active.id, b)}
       onStats={setStats}
-      forceView={focusMode ? 'preview' : undefined}
+      focus={focusMode}
     />
   ) : (
     <div className="editor">
@@ -70,6 +70,8 @@ function App() {
           onSettings={() => setModal('settings')}
           onAbout={() => setModal('about')}
           onInsert={k => editorRef.current?.format(k)}
+          onUndo={() => editorRef.current?.undo()}
+          onRedo={() => editorRef.current?.redo()}
         />
       )}
 
@@ -81,12 +83,21 @@ function App() {
           </>
         ) : layout === 'three-pane' ? (
           <>
-            <RailList api={ws} />
+            <RailList
+              api={ws}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={() => setSidebarCollapsed(c => !c)}
+            />
             {editorPane}
           </>
         ) : (
           <>
-            <Sidebar api={ws} collapsed={sidebarCollapsed} onExpand={() => setSidebarCollapsed(false)} />
+            <Sidebar
+              api={ws}
+              collapsed={sidebarCollapsed}
+              onExpand={() => setSidebarCollapsed(false)}
+              onCollapse={() => setSidebarCollapsed(true)}
+            />
             {editorPane}
           </>
         )}

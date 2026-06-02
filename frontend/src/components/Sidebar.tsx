@@ -6,11 +6,12 @@ interface Props {
   api: WorkspaceApi;
   collapsed: boolean;
   onExpand: () => void;
+  onCollapse?: () => void;
 }
 
 type Editing = { kind: 'note' | 'folder'; id: string } | null;
 
-export function Sidebar({ api, collapsed, onExpand }: Props) {
+export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
   const { folders, notes, activeId } = api;
   const [query, setQuery] = useState('');
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -117,9 +118,14 @@ export function Sidebar({ api, collapsed, onExpand }: Props) {
 
   return (
     <aside className="sidebar">
-      <button className="btn-new no-drag" onClick={() => api.newNote()}>
-        <span className="plus">+</span> New Note
-      </button>
+      <div className="sb-head">
+        <button className="btn-new no-drag" onClick={() => api.newNote()}>
+          <span className="plus">+</span> New Note
+        </button>
+        {onCollapse ? (
+          <button className="collapse-toggle" aria-label="Collapse sidebar" title="Collapse sidebar" onClick={onCollapse}>«</button>
+        ) : null}
+      </div>
       <div className="search">
         <span className="mag" />
         <input
