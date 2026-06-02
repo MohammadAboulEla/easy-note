@@ -40,6 +40,29 @@
   --serif: Georgia, 'Times New Roman', serif;
   --mono: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
   --r: 7px;
+
+  /* --- syntax highlighting (Chroma class theme) — light palette --- */
+  --code-comment: #8a8a85;
+  --code-keyword: #b3247a;
+  --code-string: #1f7a4d;
+  --code-number: #b35a00;
+  --code-function: #2d5fc9;
+  --code-type: #8a5cc9;
+  --code-builtin: #c0392b;
+  --code-operator: #6b6b68;
+  --code-name: var(--ink);
+}
+
+[data-theme="dark"] {
+  --code-comment: #6b7280;
+  --code-keyword: #ff7ab2;
+  --code-string: #87d96c;
+  --code-number: #e0a060;
+  --code-function: #6fb0ff;
+  --code-type: #c8a6ff;
+  --code-builtin: #ff8f6b;
+  --code-operator: #9b9ca0;
+  --code-name: var(--ink);
 }
 
 [data-theme="dark"] {

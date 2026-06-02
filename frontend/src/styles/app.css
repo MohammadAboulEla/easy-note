@@ -479,6 +479,30 @@ select.select-input option { background: var(--win); color: var(--ink); }
   padding: 12px 14px; overflow: auto; margin: 0 0 .9em;
 }
 .real pre code { background: transparent; padding: 0; }
+
+/* Chroma class-based syntax highlighting. Colors come from theme.css tokens so
+   code tracks light/dark. goldmark wraps highlighted blocks in <pre class="chroma">. */
+.real .chroma { background: transparent; }
+.real .chroma .c, .real .chroma .ch, .real .chroma .cm, .real .chroma .c1, .real .chroma .cs,
+.real .chroma .cp, .real .chroma .cpf { color: var(--code-comment); font-style: italic; }
+.real .chroma .k, .real .chroma .kc, .real .chroma .kd, .real .chroma .kn,
+.real .chroma .kp, .real .chroma .kr { color: var(--code-keyword); }
+.real .chroma .kt { color: var(--code-type); }
+.real .chroma .s, .real .chroma .sa, .real .chroma .sb, .real .chroma .sc, .real .chroma .dl,
+.real .chroma .sd, .real .chroma .s2, .real .chroma .se, .real .chroma .sh, .real .chroma .si,
+.real .chroma .sx, .real .chroma .sr, .real .chroma .s1, .real .chroma .ss { color: var(--code-string); }
+.real .chroma .m, .real .chroma .mb, .real .chroma .mf, .real .chroma .mh,
+.real .chroma .mi, .real .chroma .il, .real .chroma .mo { color: var(--code-number); }
+.real .chroma .nf, .real .chroma .fm { color: var(--code-function); }
+.real .chroma .nb, .real .chroma .bp { color: var(--code-builtin); }
+.real .chroma .nc, .real .chroma .nn, .real .chroma .no { color: var(--code-type); }
+.real .chroma .o, .real .chroma .ow { color: var(--code-operator); }
+.real .chroma .nt { color: var(--code-keyword); }
+.real .chroma .na { color: var(--code-function); }
+.real .chroma .nv, .real .chroma .vc, .real .chroma .vg, .real .chroma .vi { color: var(--code-name); }
+.real .chroma .err { color: var(--code-builtin); }
+.real .chroma .gd { color: var(--code-builtin); }
+.real .chroma .gi { color: var(--code-string); }
 .real hr { border: 0; border-top: 1px solid var(--stroke); margin: 1.4em 0; }
 .real img { max-width: 100%; border-radius: 8px; }
 .real table { border-collapse: collapse; margin: 0 0 .9em; width: 100%; }

@@ -102,8 +102,11 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   useEffect(() => {
     if (effectiveView !== 'preview') return;
     let alive = true;
-    renderMarkdown(body).then(h => { if (alive) setHtml(h); });
-    return () => { alive = false; };
+    // Each render is now an IPC round-trip — debounce per-keystroke calls.
+    const t = window.setTimeout(() => {
+      renderMarkdown(body).then(h => { if (alive) setHtml(h); });
+    }, 120);
+    return () => { alive = false; window.clearTimeout(t); };
   }, [effectiveView, body]);
 
   useLayoutEffect(() => {

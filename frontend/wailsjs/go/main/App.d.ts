@@ -16,6 +16,8 @@ export function GetWorkspace():Promise<main.Workspace>;
 
 export function RenameFolder(arg1:string,arg2:string):Promise<void>;
 
+export function RenderMarkdown(arg1:string):Promise<string>;
+
 export function SaveSettings(arg1:main.Settings):Promise<main.Settings>;
 
 export function TestConnection(arg1:main.ApiConfig):Promise<string>;
