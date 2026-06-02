@@ -225,10 +225,14 @@
 /* The writing surface honors the same reading-area settings as the preview:
    font family/size/line-spacing, page background, and content width. */
 .md-input {
-  flex: 1; min-height: 0; width: 100%; max-width: var(--reading-width); margin: 0 auto;
+  /* Full-width so the textarea's own scrollbar sits at the window edge. The
+     reading column is centered via symmetric padding, not by shrinking the
+     element (which would float the scrollbar mid-window). */
+  flex: 1; min-height: 0; width: 100%;
   border: 0; outline: none; resize: none; background: transparent; color: var(--reading-ink);
   font-family: var(--reading-font); font-size: var(--reading-size); line-height: var(--reading-leading);
-  padding: 28px 32px; user-select: text;
+  padding: 28px max(32px, calc((100% - var(--reading-width)) / 2)); user-select: text;
+  box-sizing: border-box;
 }
 [dir="rtl"] .md-input { text-align: right; }
 

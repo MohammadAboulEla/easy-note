@@ -60,7 +60,7 @@ function App() {
   );
 
   return (
-    <div className="app">
+    <div className={`app${focusMode ? ' focus' : ''}`}>
       <TitleBar title={active ? `EasyNote — ${active.title}.md` : 'EasyNote'} />
 
       {focusMode ? null : (

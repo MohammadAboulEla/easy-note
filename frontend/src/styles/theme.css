@@ -100,7 +100,15 @@ button { font-family: inherit; cursor: pointer; }
 /* slim themed scrollbars */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--fill-2); border-radius: 6px; border: 2px solid transparent; background-clip: padding-box; }
-::-webkit-scrollbar-thumb:hover { background: var(--bar-2); background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--bar-2); background-clip: padding-box; cursor: pointer; }
+
+/* Editor scrollers: nudge the thumb in from the window edge and give it a
+   pointer cursor on hover. Wider track + a fatter transparent border (shown
+   via padding-box) creates the inset gap without floating the bar. */
+.md-input::-webkit-scrollbar, .preview::-webkit-scrollbar { width: 16px; }
+.md-input::-webkit-scrollbar-thumb, .preview::-webkit-scrollbar-thumb {
+  border: 3px solid transparent; border-right-width: 4px; cursor: pointer;
+}
 
 /* === app shell grid (fills the frameless window) === */
 .app {
@@ -108,5 +116,11 @@ button { font-family: inherit; cursor: pointer; }
   grid-template-rows: auto auto 1fr auto;  /* titlebar / menubar / body / statusbar */
   height: 100vh;
   background: var(--win);
+}
+/* Focus mode hides the menubar, so the grid has one fewer row. Without this the
+   body row collapses to `auto` and the statusbar absorbs the `1fr`, leaving a
+   dead band below the status bar. */
+.app.focus {
+  grid-template-rows: auto 1fr auto;  /* titlebar / body / statusbar */
 }
 .app-body { display: flex; min-height: 0; }   /* sidebar + editor live here */
