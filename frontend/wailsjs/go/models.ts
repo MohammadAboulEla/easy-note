@@ -113,6 +113,8 @@ export namespace main {
 	    id: string;
 	    name: string;
 	    parentId: string;
+	    linked?: boolean;
+	    path?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Folder(source);
@@ -123,6 +125,8 @@ export namespace main {
 	        this.id = source["id"];
 	        this.name = source["name"];
 	        this.parentId = source["parentId"];
+	        this.linked = source["linked"];
+	        this.path = source["path"];
 	    }
 	}
 	export class Note {
@@ -132,6 +136,8 @@ export namespace main {
 	    folderId: string;
 	    createdAt: number;
 	    updatedAt: number;
+	    linked?: boolean;
+	    path?: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new Note(source);
@@ -145,6 +151,8 @@ export namespace main {
 	        this.folderId = source["folderId"];
 	        this.createdAt = source["createdAt"];
 	        this.updatedAt = source["updatedAt"];
+	        this.linked = source["linked"];
+	        this.path = source["path"];
 	    }
 	}
 	export class Settings {

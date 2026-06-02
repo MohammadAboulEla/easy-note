@@ -6,6 +6,8 @@ export interface MenuBarProps {
   settingsApi: SettingsApi;
   onNewNote?: () => void;
   onNewFolder?: () => void;
+  onOpenFolder?: () => void;
+  onOpenFile?: () => void;
   onSave?: () => void;
   onToggleSidebar?: () => void;
   onSettings?: () => void;
@@ -87,6 +89,9 @@ export function MenuBar(props: MenuBarProps) {
       {menu('file', 'File', <>
         <Item label="New Note" accel="Ctrl+N" onClick={run(props.onNewNote)} />
         <Item label="New Folder" onClick={run(props.onNewFolder)} />
+        <Sep />
+        <Item label="Open Folder…" onClick={run(props.onOpenFolder)} />
+        <Item label="Open File…" accel="Ctrl+O" onClick={run(props.onOpenFile)} />
         <Sep />
         <Item label="Save" accel="Ctrl+S" onClick={run(props.onSave)} />
         <Sep />

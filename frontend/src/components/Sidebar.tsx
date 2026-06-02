@@ -5,9 +5,11 @@ import { ConfirmDialog } from './ConfirmDialog';
 
 // Pending deletion awaiting confirmation.
 type Pending =
-  | { kind: 'note'; id: string; name: string }
-  | { kind: 'folder'; id: string; name: string }
+  | { kind: 'note'; id: string; name: string; linked?: boolean }
+  | { kind: 'folder'; id: string; name: string; linked?: boolean }
   | null;
+
+const isLinked = (id: string) => id.startsWith('linked:');
 
 interface Props {
   api: WorkspaceApi;
@@ -27,8 +29,15 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
 
   const confirmDelete = () => {
     if (!pendingDelete) return;
-    if (pendingDelete.kind === 'note') api.removeNote(pendingDelete.id);
-    else api.removeFolder(pendingDelete.id);
+    if (pendingDelete.kind === 'folder') {
+      // removeFolder already unlinks a linked folder (files left on disk).
+      api.removeFolder(pendingDelete.id);
+    } else if (pendingDelete.linked) {
+      // A standalone linked file is removed from the app, not deleted on disk.
+      api.closeLink(pendingDelete.id);
+    } else {
+      api.removeNote(pendingDelete.id);
+    }
     setPendingDelete(null);
   };
 
@@ -104,7 +113,7 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
       <button
         className="row-del"
         aria-label={`Delete ${n.title}`}
-        onClick={e => { e.stopPropagation(); setPendingDelete({ kind: 'note', id: n.id, name: n.title || 'Untitled' }); }}
+        onClick={e => { e.stopPropagation(); setPendingDelete({ kind: 'note', id: n.id, name: n.title || 'Untitled', linked: n.linked && !n.folderId }); }}
       >✕</button>
     </div>
   );
@@ -115,16 +124,16 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
     return (
       <div key={f.id}>
         <div className="folder" onClick={() => toggleFolder(f.id)}
-          onDoubleClick={() => setEditing({ kind: 'folder', id: f.id })}>
+          onDoubleClick={() => { if (!f.linked) setEditing({ kind: 'folder', id: f.id }); }}>
           <span className="tri">{open ? '▾' : '▸'}</span>
           <FolderIcon />
           {editing?.kind === 'folder' && editing.id === f.id
             ? renameInput(f.name)
-            : <span className="row-label">{f.name}</span>}
+            : <span className="row-label">{f.name}{f.linked ? <span className="link-badge" title={f.path}>↗</span> : null}</span>}
           <button className="row-add" aria-label={`New note in ${f.name}`}
             onClick={e => { e.stopPropagation(); api.newNote(f.id); }}>+</button>
-          <button className="row-del" aria-label={`Delete ${f.name}`}
-            onClick={e => { e.stopPropagation(); setPendingDelete({ kind: 'folder', id: f.id, name: f.name }); }}>✕</button>
+          <button className="row-del" aria-label={f.linked ? `Close ${f.name}` : `Delete ${f.name}`}
+            onClick={e => { e.stopPropagation(); setPendingDelete({ kind: 'folder', id: f.id, name: f.name, linked: f.linked }); }}>✕</button>
         </div>
         {open ? kids.map(n => noteRow(n)) : null}
       </div>
@@ -177,11 +186,17 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
 
       {pendingDelete ? (
         <ConfirmDialog
-          title={pendingDelete.kind === 'note' ? 'Delete note' : 'Delete notebook'}
+          title={
+            pendingDelete.linked
+              ? (pendingDelete.kind === 'folder' ? 'Close folder' : 'Close file')
+              : (pendingDelete.kind === 'note' ? 'Delete note' : 'Delete notebook')
+          }
           message={
-            pendingDelete.kind === 'note'
-              ? `Delete “${pendingDelete.name}”? This can’t be undone.`
-              : `Delete the notebook “${pendingDelete.name}”? Its notes will be moved to Unfiled. This can’t be undone.`
+            pendingDelete.linked
+              ? `Remove “${pendingDelete.name}” from EasyNote? The files stay on disk in their original location.`
+              : pendingDelete.kind === 'note'
+                ? `Delete “${pendingDelete.name}”? This can’t be undone.`
+                : `Delete the notebook “${pendingDelete.name}”? Its notes will be moved to Unfiled. This can’t be undone.`
           }
           onConfirm={confirmDelete}
           onClose={() => setPendingDelete(null)}

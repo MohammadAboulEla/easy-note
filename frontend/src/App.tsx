@@ -29,6 +29,7 @@ function App() {
       if (!(e.ctrlKey || e.metaKey)) return;
       if (e.key === 's') { e.preventDefault(); ws.flush(); }
       else if (e.key === 'n') { e.preventDefault(); ws.newNote(); }
+      else if (e.key === 'o') { e.preventDefault(); ws.openFile(); }
       else if (e.key === '\\') { e.preventDefault(); setSidebarCollapsed(c => !c); }
     };
     window.addEventListener('keydown', onKey);
@@ -68,6 +69,8 @@ function App() {
           settingsApi={settingsApi}
           onNewNote={() => ws.newNote()}
           onNewFolder={() => ws.newFolder()}
+          onOpenFolder={() => ws.openFolder()}
+          onOpenFile={() => ws.openFile()}
           onSave={() => ws.flush()}
           onToggleSidebar={() => setSidebarCollapsed(c => !c)}
           onSettings={() => setModal('settings')}

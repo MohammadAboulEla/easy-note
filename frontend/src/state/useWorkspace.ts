@@ -2,7 +2,8 @@
 // CRUD + a debounced autosave. The Go side remains the source of truth on disk.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  CreateFolder, CreateNote, DeleteFolder, DeleteNote, GetWorkspace, RenameFolder, UpdateNote,
+  CloseLink, CreateNote, DeleteFolder, DeleteNote, GetWorkspace,
+  NewFolderOnDisk, OpenFile, OpenFolder, RenameFolder, UpdateNote,
 } from '../../wailsjs/go/main/App';
 import { main } from '../../wailsjs/go/models';
 
@@ -30,6 +31,10 @@ export interface WorkspaceApi {
   removeFolder: (id: string) => Promise<void>;
   setBody: (id: string, body: string) => void;
   flush: () => Promise<void>;
+  // Linked files/folders: index real .md files in their original locations.
+  openFolder: () => Promise<void>;
+  openFile: () => Promise<void>;
+  closeLink: (id: string) => Promise<void>;
 }
 
 export function useWorkspace(): WorkspaceApi {
@@ -45,14 +50,38 @@ export function useWorkspace(): WorkspaceApi {
   const timer = useRef<number | null>(null);
   const pendingId = useRef<string | null>(null);
 
-  useEffect(() => {
-    GetWorkspace().then(ws => {
-      setFolders(ws.folders ?? []);
-      setNotes(ws.notes ?? []);
-      setActiveId((ws.notes ?? [])[0]?.id ?? null);
-      setLoaded(true);
+  // reload pulls the merged tree (embedded + linked) from Go. selectId, when
+  // given, becomes the active note (used after opening a file). Otherwise the
+  // current selection is preserved if it still exists.
+  const reload = useCallback(async (selectId?: string) => {
+    const ws = await GetWorkspace();
+    const nextNotes = ws.notes ?? [];
+    setFolders(ws.folders ?? []);
+    setNotes(nextNotes);
+    setActiveId(cur => {
+      if (selectId) return selectId;
+      if (cur && nextNotes.some(n => n.id === cur)) return cur;
+      return nextNotes[0]?.id ?? null;
     });
+    setLoaded(true);
   }, []);
+
+  useEffect(() => { void reload(); }, [reload]);
+
+  const openFolder = useCallback(async () => {
+    const dir = await OpenFolder();
+    if (dir) await reload();
+  }, [reload]);
+
+  const openFile = useCallback(async () => {
+    const id = await OpenFile();
+    if (id) await reload(id);
+  }, [reload]);
+
+  const closeLink = useCallback(async (id: string) => {
+    await CloseLink(id);
+    await reload();
+  }, [reload]);
 
   const select = useCallback((id: string) => { setFreshNoteId(null); setActiveId(id); }, []);
 
@@ -63,14 +92,22 @@ export function useWorkspace(): WorkspaceApi {
     setActiveId(n.id);
   }, []);
 
-  const newFolder = useCallback(async (name = 'New Notebook') => {
-    const f = await CreateFolder(name, '');
-    setFolders(prev => [...prev, f]);
-  }, []);
+  // A folder backed by a real directory carries a "linked:" id.
+  const isLinkedId = (id: string) => id.startsWith('linked:');
+
+  // newFolder creates a real directory on disk (the user picks where) and links
+  // it. New notes saved into it become .md files in that folder.
+  const newFolder = useCallback(async (name = 'New Folder') => {
+    const id = await NewFolderOnDisk(name);
+    if (id) await reload();
+  }, [reload]);
 
   const renameNote = useCallback(async (id: string, title: string) => {
     const note = notesRef.current.find(n => n.id === id);
     if (!note) return;
+    // Linked notes take their title from the filename; renaming is a no-op here
+    // (the file on disk is the source of truth).
+    if (note.linked) return;
     const u = await UpdateNote(main.Note.createFrom({ ...note, title }));
     setNotes(prev => prev.map(n => (n.id === id ? u : n)));
   }, []);
@@ -88,10 +125,16 @@ export function useWorkspace(): WorkspaceApi {
   }, []);
 
   const removeFolder = useCallback(async (id: string) => {
+    // A linked folder is unlinked (files left on disk), not deleted.
+    if (isLinkedId(id)) {
+      await CloseLink(id);
+      await reload();
+      return;
+    }
     await DeleteFolder(id);
     setFolders(prev => prev.filter(f => f.id !== id));
     setNotes(prev => prev.map(n => (n.folderId === id ? main.Note.createFrom({ ...n, folderId: '' }) : n)));
-  }, []);
+  }, [reload]);
 
   const setBody = useCallback((id: string, body: string) => {
     setNotes(prev => prev.map(n => (n.id === id ? main.Note.createFrom({ ...n, body }) : n)));
@@ -122,5 +165,6 @@ export function useWorkspace(): WorkspaceApi {
   return {
     folders, notes, activeId, activeNote, freshNoteId, saving, loaded,
     select, newNote, newFolder, renameNote, renameFolder, removeNote, removeFolder, setBody, flush,
+    openFolder, openFile, closeLink,
   };
 }

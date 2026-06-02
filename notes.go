@@ -16,6 +16,11 @@ type Folder struct {
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	ParentID string `json:"parentId"`
+	// Linked is true for folders backed by a real directory on disk (added via
+	// File → Open Folder). Path is that directory's absolute path. Linked folders
+	// are not persisted in workspace.json; they are rebuilt from links.json each run.
+	Linked bool   `json:"linked,omitempty"`
+	Path   string `json:"path,omitempty"`
 }
 
 // Note is a single markdown document. Body holds raw markdown.
@@ -26,6 +31,11 @@ type Note struct {
 	FolderID  string `json:"folderId"` // "" = uncategorized
 	CreatedAt int64  `json:"createdAt"`
 	UpdatedAt int64  `json:"updatedAt"`
+	// Linked is true for notes backed by a real .md file on disk. Path is that
+	// file's absolute path. Linked notes live in their original location and are
+	// read/written in place; they are never stored in workspace.json.
+	Linked bool   `json:"linked,omitempty"`
+	Path   string `json:"path,omitempty"`
 }
 
 // Workspace is the full persisted note tree.
@@ -102,11 +112,16 @@ func seedWorkspace() Workspace {
 
 // ---- Bound CRUD API (exposed to the frontend) ----
 
-// GetWorkspace returns the full note tree.
+// GetWorkspace returns the full note tree: embedded notes/folders from
+// workspace.json merged with the live contents of any linked folders/files.
 func (a *App) GetWorkspace() Workspace {
 	a.mu.Lock()
 	defer a.mu.Unlock()
-	return a.ws
+	lf, ln := a.scanLinks()
+	return Workspace{
+		Folders: append(append([]Folder{}, a.ws.Folders...), lf...),
+		Notes:   append(append([]Note{}, a.ws.Notes...), ln...),
+	}
 }
 
 // CreateNote creates an empty note in the given folder ("" = uncategorized).
@@ -116,6 +131,10 @@ func (a *App) CreateNote(folderID string, title string) (Note, error) {
 	if title == "" {
 		title = "Untitled"
 	}
+	// A folderID of "linked:<dir>" means create a real .md file in that directory.
+	if dir, ok := linkedFolderDir(folderID); ok {
+		return a.createLinkedNote(dir, title)
+	}
 	t := now()
 	n := Note{ID: uuid.NewString(), Title: title, FolderID: folderID, Body: "", CreatedAt: t, UpdatedAt: t}
 	a.ws.Notes = append(a.ws.Notes, n)
@@ -124,9 +143,13 @@ func (a *App) CreateNote(folderID string, title string) (Note, error) {
 }
 
 // UpdateNote replaces title/body/folder of an existing note and stamps UpdatedAt.
+// For linked notes the body is written back to the original .md file in place.
 func (a *App) UpdateNote(in Note) (Note, error) {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if in.Linked {
+		return a.writeLinkedNote(in)
+	}
 	for i := range a.ws.Notes {
 		if a.ws.Notes[i].ID == in.ID {
 			a.ws.Notes[i].Title = in.Title
@@ -144,6 +167,10 @@ func (a *App) UpdateNote(in Note) (Note, error) {
 func (a *App) DeleteNote(id string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	// Linked notes carry a "linked:<path>" id; deleting removes the file on disk.
+	if path, ok := linkedNotePath(id); ok {
+		return os.Remove(path)
+	}
 	out := a.ws.Notes[:0]
 	found := false
 	for _, n := range a.ws.Notes {

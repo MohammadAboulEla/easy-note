@@ -14,6 +14,7 @@ type App struct {
 
 	ws       Workspace
 	settings Settings
+	links    links // user-added linked folders/files (persisted in links.json)
 
 	// inflight maps a tweak request ID to its cancel func so CancelTweak can
 	// abort an in-progress AI call. Guarded by mu.
@@ -32,4 +33,5 @@ func (a *App) startup(ctx context.Context) {
 	a.dataDir = appDataDir()
 	a.loadWorkspace()
 	a.loadSettings()
+	a.loadLinks()
 }

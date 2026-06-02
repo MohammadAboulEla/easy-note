@@ -4,6 +4,8 @@ import {main} from '../models';
 
 export function CancelTweak(arg1:string):Promise<void>;
 
+export function CloseLink(arg1:string):Promise<void>;
+
 export function CreateFolder(arg1:string,arg2:string):Promise<main.Folder>;
 
 export function CreateNote(arg1:string,arg2:string):Promise<main.Note>;
@@ -15,6 +17,12 @@ export function DeleteNote(arg1:string):Promise<void>;
 export function GetSettings():Promise<main.Settings>;
 
 export function GetWorkspace():Promise<main.Workspace>;
+
+export function NewFolderOnDisk(arg1:string):Promise<string>;
+
+export function OpenFile():Promise<string>;
+
+export function OpenFolder():Promise<string>;
 
 export function RenameFolder(arg1:string,arg2:string):Promise<void>;
 

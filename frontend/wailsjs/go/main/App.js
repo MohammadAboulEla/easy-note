@@ -6,6 +6,10 @@ export function CancelTweak(arg1) {
   return window['go']['main']['App']['CancelTweak'](arg1);
 }
 
+export function CloseLink(arg1) {
+  return window['go']['main']['App']['CloseLink'](arg1);
+}
+
 export function CreateFolder(arg1, arg2) {
   return window['go']['main']['App']['CreateFolder'](arg1, arg2);
 }
@@ -28,6 +32,18 @@ export function GetSettings() {
 
 export function GetWorkspace() {
   return window['go']['main']['App']['GetWorkspace']();
+}
+
+export function NewFolderOnDisk(arg1) {
+  return window['go']['main']['App']['NewFolderOnDisk'](arg1);
+}
+
+export function OpenFile() {
+  return window['go']['main']['App']['OpenFile']();
+}
+
+export function OpenFolder() {
+  return window['go']['main']['App']['OpenFolder']();
 }
 
 export function RenameFolder(arg1, arg2) {
