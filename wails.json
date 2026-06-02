@@ -9,5 +9,10 @@
   "author": {
     "name": "Makadi",
     "email": "rendreal@hotmail.com"
+  },
+  "info": {
+    "productName": "EasyNote",
+    "productVersion": "1.0.0",
+    "comments": "A minimalist, markdown-first notebook with built-in AI editing."
   }
 }

@@ -1,13 +1,18 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserOpenURL } from '../../wailsjs/runtime/runtime';
+import { AppVersion } from '../../wailsjs/go/main/App';
 import appImage from '../assets/images/app-image.png';
 
 export function AboutDialog({ onClose }: { onClose: () => void }) {
+  const [ver, setVer] = useState<{ version: string; build: string } | null>(null);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  useEffect(() => { AppVersion().then(setVer).catch(() => {}); }, []);
 
   return (
     <div className="modal-scrim" onMouseDown={onClose}>
@@ -20,12 +25,10 @@ export function AboutDialog({ onClose }: { onClose: () => void }) {
         <div className="about">
           <img className="logo" src={appImage} alt="EasyNote" />
           <h3>EasyNote</h3>
-          <div className="ver">Version 1.0.0 · build 240</div>
+          <div className="ver">{ver ? `Version ${ver.version} · build ${ver.build}` : ' '}</div>
           <p>A minimalist, markdown-first notebook with built-in AI editing. Light &amp; dark, LTR &amp; RTL.</p>
           <div className="links">
-            <button onClick={() => BrowserOpenURL('https://wails.io')}>Website</button>
-            <button onClick={() => BrowserOpenURL('https://wails.io')}>Licenses</button>
-            <button onClick={() => BrowserOpenURL('https://wails.io')}>Check for updates</button>
+            <button onClick={() => BrowserOpenURL('https://wails.io')}>GitHubRepo</button>
           </div>
         </div>
         <div className="dlg-foot" style={{ justifyContent: 'center' }}>

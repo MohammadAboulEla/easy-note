@@ -225,6 +225,20 @@ export namespace main {
 	        this.preserveMarkdown = source["preserveMarkdown"];
 	    }
 	}
+	export class VersionInfo {
+	    version: string;
+	    build: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new VersionInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.version = source["version"];
+	        this.build = source["build"];
+	    }
+	}
 	export class Workspace {
 	    folders: Folder[];
 	    notes: Note[];

@@ -5,6 +5,26 @@ import (
 	"sync"
 )
 
+// Version metadata — the single source of truth for the app version. Update
+// these on each release; the About dialog reads them via AppVersion(), and
+// AppVersion (the marketing string) should be mirrored into wails.json's
+// info.productVersion so the built .exe's file properties match.
+const (
+	appVersion = "1.0.0" // semantic/marketing version shown in About
+	appBuild   = "240"   // build number shown in About
+)
+
+// VersionInfo is returned to the frontend for display (e.g. the About dialog).
+type VersionInfo struct {
+	Version string `json:"version"`
+	Build   string `json:"build"`
+}
+
+// AppVersion returns the app version metadata for display in the UI.
+func (a *App) AppVersion() VersionInfo {
+	return VersionInfo{Version: appVersion, Build: appBuild}
+}
+
 // App is the Wails-bound application backend. It owns the on-disk workspace
 // (notes/folders) and user settings, guarded by a mutex.
 type App struct {
