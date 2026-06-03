@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { ACCENTS, AiCommand, DEFAULT_AI_BEHAVIOR, FontChoice, INK_COLORS, PAGE_BGS, ThemeChoice } from '../state/settings';
+import { ACCENTS, AI_BUBBLE_BGS, AiCommand, DEFAULT_AI_BEHAVIOR, FontChoice, INK_COLORS, PAGE_BGS, ThemeChoice } from '../state/settings';
 import { PROVIDER_PRESETS } from '../state/providers';
 import { SettingsApi } from '../state/useSettings';
 import { TestConnection } from '../../wailsjs/go/main/App';
@@ -312,6 +312,18 @@ export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: ()
                     ))}
                   </div>
                   <div className="desc">Reading-area ink. Pair a light ink with a dark page.</div>
+                </div>
+                <div className="field">
+                  <label>AI bubble</label>
+                  <div className="theme-swatches">
+                    <div className={`sw auto${!a.aiBubbleBg ? ' on' : ''}`} title="Follow theme"
+                      style={{ color: 'var(--accent)' }} onClick={() => patchAppearance({ aiBubbleBg: '' })}>A</div>
+                    {AI_BUBBLE_BGS.map(hex => (
+                      <div key={hex} className={`sw${a.aiBubbleBg === hex ? ' on' : ''}`}
+                        style={{ background: hex, color: hex }} onClick={() => patchAppearance({ aiBubbleBg: hex })} />
+                    ))}
+                  </div>
+                  <div className="desc">Background of the AI quick-action popup. Text contrast is automatic.</div>
                 </div>
                 {slider('Content width', a.contentWidth, 540, 900, 10,
                   n => patchAppearance({ contentWidth: n }), n => `${n}px`)}

@@ -34,6 +34,12 @@
   --reading-leading: 1.7;
   --reading-width: 680px;
 
+  /* --- AI quick-action bubble (user-configurable) --- */
+  /* Light theme: sidebar-family grey so the bubble belongs to the UI palette,
+     still a shade darker than the page so it reads as a floating popup. */
+  --ai-bubble-bg: #c5c5bf;
+  --ai-bubble-ink: #2c2c2c;
+
   /* --- type & shape --- */
   --ui: 'Atkinson Hyperlegible', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --hand: 'Caveat', cursive;
@@ -78,6 +84,11 @@
   --fill-2: #34373e;
   --bar: #3a3d44;
   --bar-2: #4a4e56;
+
+  /* Dark theme: an elevated surface that stands out against the dark reading
+     background instead of blending into it. */
+  --ai-bubble-bg: #34373e;
+  --ai-bubble-ink: #f1f1f3;
 }
 
 /* --- base reset --- */

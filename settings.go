@@ -25,6 +25,7 @@ type Appearance struct {
 	Accent       string  `json:"accent"`
 	PageBg       string  `json:"pageBg"`
 	InkColor     string  `json:"inkColor"`
+	AiBubbleBg   string  `json:"aiBubbleBg"`
 	ContentWidth int     `json:"contentWidth"`
 	Font         string  `json:"font"`
 	CustomFont   string  `json:"customFont"`
@@ -69,6 +70,7 @@ func defaultSettings() Settings {
 			Accent:       "#e0613a",
 			PageBg:       "", // "" = follow theme
 			InkColor:     "", // "" = follow theme
+			AiBubbleBg:   "", // "" = follow theme default
 			ContentWidth: 680,
 			Font:         "sans",
 			CustomFont:   "",

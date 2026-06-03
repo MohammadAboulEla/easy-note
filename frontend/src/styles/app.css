@@ -245,7 +245,10 @@
 
 /* ---------- M4: AI tweak overlay ---------- */
 .ai-layer { position: absolute; z-index: 30; }
-.ai-layer[data-phase="bubble"] { transform: translate(-50%, calc(-100% - 10px)); }
+/* Lift the bubble a full line-height above the click point so it clears the
+   selected line instead of covering it (the anchor y is the mouse-release
+   position, which falls mid-line). */
+.ai-layer[data-phase="bubble"] { transform: translate(-50%, calc(-100% - 1.6em - 10px)); }
 .ai-layer[data-phase="prompt"],
 .ai-layer[data-phase="loading"],
 .ai-layer[data-phase="diff"],
@@ -253,12 +256,13 @@
 
 .bubble {
   display: flex; gap: 3px; align-items: center; padding: 6px;
-  background: #1b1c1f; color: #f4f4f2; border-radius: 9px;
-  box-shadow: 0 10px 24px -8px rgba(0,0,0,.55); white-space: nowrap;
+  background: var(--ai-bubble-bg); color: var(--ai-bubble-ink); border-radius: 9px;
+  border: 1px solid color-mix(in oklch, var(--ai-bubble-ink) 12%, transparent);
+  box-shadow: 0 10px 24px -8px rgba(0,0,0,.45); white-space: nowrap;
 }
 .bubble::after {
   content: ""; position: absolute; bottom: -6px; left: 50%; margin-left: -6px;
-  width: 12px; height: 12px; background: #1b1c1f; transform: rotate(45deg);
+  width: 12px; height: 12px; background: var(--ai-bubble-bg); transform: rotate(45deg);
 }
 .ai-dot {
   width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
@@ -266,11 +270,13 @@
 }
 .ai-dot.err { background: #e5484d; font-weight: 700; }
 .bubble .b {
-  border: 0; background: transparent; color: #f4f4f2; font-weight: 700;
+  border: 0; background: transparent; color: var(--ai-bubble-ink); font-weight: 700;
   font-size: 11.5px; padding: 5px 9px; border-radius: 6px;
 }
-.bubble .b:hover { background: rgba(255,255,255,.14); }
-.bubble .div { width: 1px; height: 16px; background: rgba(255,255,255,.18); }
+/* Hover/divider tint from the ink color so they read on both the dark and the
+   light bubble backgrounds. */
+.bubble .b:hover { background: color-mix(in oklch, var(--ai-bubble-ink) 16%, transparent); }
+.bubble .div { width: 1px; height: 16px; background: color-mix(in oklch, var(--ai-bubble-ink) 22%, transparent); }
 
 .ai-pop {
   width: 300px; background: var(--win); border: 1.5px solid var(--accent-line);

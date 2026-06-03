@@ -87,6 +87,7 @@ export namespace main {
 	    accent: string;
 	    pageBg: string;
 	    inkColor: string;
+	    aiBubbleBg: string;
 	    contentWidth: number;
 	    font: string;
 	    customFont: string;
@@ -102,6 +103,7 @@ export namespace main {
 	        this.accent = source["accent"];
 	        this.pageBg = source["pageBg"];
 	        this.inkColor = source["inkColor"];
+	        this.aiBubbleBg = source["aiBubbleBg"];
 	        this.contentWidth = source["contentWidth"];
 	        this.font = source["font"];
 	        this.customFont = source["customFont"];

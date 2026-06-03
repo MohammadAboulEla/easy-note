@@ -22,6 +22,7 @@ export interface Appearance {
   accent: string;
   pageBg: string;        // reading-area background tint
   inkColor: string;      // reading-area text color ('' = follow theme --ink)
+  aiBubbleBg: string;    // AI quick-action bubble bg ('' = follow theme default)
   contentWidth: number;  // px
   font: FontChoice;
   customFont: string;    // user-entered system font name (when font === 'custom')
@@ -86,6 +87,24 @@ export const INK_COLORS = [
   '#e9e9ea', '#e7e2d4', '#d4dce7', '#ecd9c8',
 ];
 
+// AI quick-action bubble backgrounds — a few dark and light surfaces. Ink color
+// is derived automatically from the chosen background (see applySettings).
+export const AI_BUBBLE_BGS = [
+  '#34373e', '#1b1c1f', '#2b2f3a', '#3a2f2a',
+  '#c5c5bf', '#e8e6df', '#e6ecf2', '#f0e7dc',
+];
+
+/** True if a hex color is light enough to want dark text on top of it. */
+function isLightHex(hex: string): boolean {
+  const h = hex.replace('#', '');
+  if (h.length < 6) return false;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  // Rec. 601 luma.
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 150;
+}
+
 export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',          // per design: default dark
   dir: 'ltr',
@@ -94,6 +113,7 @@ export const DEFAULT_SETTINGS: Settings = {
     accent: '#e0613a',    // per design: default orange
     pageBg: '',           // '' = follow theme (--paper); a hex picks a fixed tint
     inkColor: '',         // '' = follow theme (--ink); a hex picks a fixed text color
+    aiBubbleBg: '',       // '' = follow theme default; a hex picks a fixed bubble bg
     contentWidth: 680,
     font: 'sans',
     customFont: '',
@@ -145,6 +165,14 @@ export function applySettings(s: Settings): void {
   root.style.setProperty('--accent', a.accent);
   root.style.setProperty('--reading-bg', a.pageBg || 'var(--paper)');
   root.style.setProperty('--reading-ink', a.inkColor || 'var(--ink)');
+  if (a.aiBubbleBg) {
+    root.style.setProperty('--ai-bubble-bg', a.aiBubbleBg);
+    root.style.setProperty('--ai-bubble-ink', isLightHex(a.aiBubbleBg) ? '#1b1c1f' : '#f4f4f2');
+  } else {
+    // Fall back to the theme default tokens defined in theme.css.
+    root.style.removeProperty('--ai-bubble-bg');
+    root.style.removeProperty('--ai-bubble-ink');
+  }
   root.style.setProperty('--reading-font', fontValue(a));
   root.style.setProperty('--reading-size', `${a.fontSize}px`);
   root.style.setProperty('--reading-leading', String(a.lineSpacing));
