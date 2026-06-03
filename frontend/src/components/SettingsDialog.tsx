@@ -4,6 +4,7 @@ import { PROVIDER_PRESETS } from '../state/providers';
 import { SettingsApi } from '../state/useSettings';
 import { TestConnection } from '../../wailsjs/go/main/App';
 import { main } from '../../wailsjs/go/models';
+import { Tooltip } from './Tooltip';
 
 type Tab = 'api' | 'ai' | 'appearance' | 'editor' | 'shortcuts';
 type TestState = { status: 'idle' | 'testing' | 'ok' | 'err'; msg: string };
@@ -292,8 +293,8 @@ export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: ()
                 <div className="field">
                   <label>Page background</label>
                   <div className="theme-swatches">
-                    <div className={`sw auto${!a.pageBg ? ' on' : ''}`} title="Follow theme"
-                      style={{ color: 'var(--accent)' }} onClick={() => patchAppearance({ pageBg: '' })}>A</div>
+                    <Tooltip tip="Follow theme"><div className={`sw auto${!a.pageBg ? ' on' : ''}`}
+                      style={{ color: 'var(--accent)' }} onClick={() => patchAppearance({ pageBg: '' })}>A</div></Tooltip>
                     {PAGE_BGS.map(hex => (
                       <div key={hex} className={`sw${a.pageBg === hex ? ' on' : ''}`}
                         style={{ background: hex, color: hex }} onClick={() => patchAppearance({ pageBg: hex })} />
@@ -304,8 +305,8 @@ export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: ()
                 <div className="field">
                   <label>Text color</label>
                   <div className="theme-swatches">
-                    <div className={`sw auto${!a.inkColor ? ' on' : ''}`} title="Follow theme"
-                      style={{ color: 'var(--accent)' }} onClick={() => patchAppearance({ inkColor: '' })}>A</div>
+                    <Tooltip tip="Follow theme"><div className={`sw auto${!a.inkColor ? ' on' : ''}`}
+                      style={{ color: 'var(--accent)' }} onClick={() => patchAppearance({ inkColor: '' })}>A</div></Tooltip>
                     {INK_COLORS.map(hex => (
                       <div key={hex} className={`sw${a.inkColor === hex ? ' on' : ''}`}
                         style={{ background: hex, color: hex }} onClick={() => patchAppearance({ inkColor: hex })} />
@@ -316,8 +317,8 @@ export function SettingsDialog({ api, onClose }: { api: SettingsApi; onClose: ()
                 <div className="field">
                   <label>AI bubble</label>
                   <div className="theme-swatches">
-                    <div className={`sw auto${!a.aiBubbleBg ? ' on' : ''}`} title="Follow theme"
-                      style={{ color: 'var(--accent)' }} onClick={() => patchAppearance({ aiBubbleBg: '' })}>A</div>
+                    <Tooltip tip="Follow theme"><div className={`sw auto${!a.aiBubbleBg ? ' on' : ''}`}
+                      style={{ color: 'var(--accent)' }} onClick={() => patchAppearance({ aiBubbleBg: '' })}>A</div></Tooltip>
                     {AI_BUBBLE_BGS.map(hex => (
                       <div key={hex} className={`sw${a.aiBubbleBg === hex ? ' on' : ''}`}
                         style={{ background: hex, color: hex }} onClick={() => patchAppearance({ aiBubbleBg: hex })} />

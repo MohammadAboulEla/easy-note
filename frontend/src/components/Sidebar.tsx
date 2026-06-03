@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Folder, Note, WorkspaceApi } from '../state/useWorkspace';
 import { FolderIcon } from './icons';
 import { ConfirmDialog } from './ConfirmDialog';
+import { Tooltip } from './Tooltip';
 
 // Pending deletion awaiting confirmation.
 type Pending =
@@ -83,9 +84,9 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
   if (collapsed) {
     return (
       <aside className="sidebar collapsed">
-        <button className="collapse-toggle" aria-label="Expand sidebar" onClick={onExpand}>☰</button>
-        <button className="rail-new" aria-label="New note" onClick={() => api.newNote()}>+</button>
-        {topFolders.map(f => <span key={f.id} className="rail-folder" title={f.name}><FolderIcon /></span>)}
+        <Tooltip tip="Expand sidebar"><button className="collapse-toggle" aria-label="Expand sidebar" onClick={onExpand}>☰</button></Tooltip>
+        <Tooltip tip="New note"><button className="rail-new" aria-label="New note" onClick={() => api.newNote()}>+</button></Tooltip>
+        {topFolders.map(f => <Tooltip key={f.id} tip={f.name}><span className="rail-folder"><FolderIcon /></span></Tooltip>)}
       </aside>
     );
   }
@@ -157,10 +158,10 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
           {...dropProps(f.id)}
           onDoubleClick={() => { if (!f.linked) setEditing({ kind: 'folder', id: f.id }); }}>
           <span className="tri">{open ? '▾' : '▸'}</span>
-          <FolderIcon />
+          <Tooltip tip={f.linked ? f.path : undefined}><span className="folder-ic-wrap"><FolderIcon /></span></Tooltip>
           {editing?.kind === 'folder' && editing.id === f.id
             ? renameInput(f.name)
-            : <span className="row-label">{f.name}{f.linked ? <span className="link-badge" title={f.path}>↗</span> : null}</span>}
+            : <span className="row-label">{f.name}</span>}
           <button className="row-add" aria-label={`New note in ${f.name}`}
             onClick={e => { e.stopPropagation(); api.newNote(f.id); }}>+</button>
           <button className="row-del" aria-label={f.linked ? `Close ${f.name}` : `Delete ${f.name}`}
@@ -178,7 +179,7 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
           <span className="plus">+</span> New Note
         </button>
         {onCollapse ? (
-          <button className="collapse-toggle" aria-label="Collapse sidebar" title="Collapse sidebar" onClick={onCollapse}>«</button>
+          <Tooltip tip="Collapse sidebar"><button className="collapse-toggle" aria-label="Collapse sidebar" onClick={onCollapse}>«</button></Tooltip>
         ) : null}
       </div>
       <div className="search">

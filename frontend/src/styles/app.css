@@ -190,7 +190,28 @@
 .rail-item.on .folder-ic { color: var(--accent); }
 
 .row-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.link-badge { margin-inline-start: 4px; font-size: 0.8em; opacity: 0.55; color: var(--accent); }
+.folder-ic-wrap { display: inline-flex; flex: none; }
+
+/* ---- Custom tooltip ----
+   Rendered to document.body via a portal (see components/Tooltip.tsx) so it
+   escapes the sidebar's overflow:auto clipping. App-styled with theme tokens +
+   the UI font; tracks light/dark. .tooltip-bubble is positioned inline by JS. */
+.tooltip-bubble {
+  position: fixed; z-index: 1000; pointer-events: none;
+  max-width: 420px; width: max-content;
+  padding: 5px 9px; border-radius: 7px;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--ui); font-size: 11.5px; font-weight: 600; line-height: 1.35;
+  white-space: normal; word-break: break-all; direction: ltr;
+  box-shadow: 0 6px 18px -8px rgba(0,0,0,.5);
+  animation: tip-in .12s ease both;
+}
+.tooltip-bubble::after { /* arrow pointing up at the anchor */
+  content: ""; position: absolute; bottom: 100%; left: var(--tip-arrow, 50%);
+  transform: translateX(-50%);
+  border: 5px solid transparent; border-bottom-color: var(--ink);
+}
+@keyframes tip-in { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
 .row-del, .row-add {
   border: 0; background: transparent; color: var(--ink-soft); font-size: 11px;
   padding: 2px 5px; border-radius: 4px; opacity: 0; flex: none;

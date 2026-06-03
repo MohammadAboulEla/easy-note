@@ -5,6 +5,7 @@ import { InsertKind } from './MenuBar';
 import { renderMarkdown } from '../lib/markdown';
 import { EditorStats } from './StatusBar';
 import { AiOverlay, AiState } from './AiOverlay';
+import { Tooltip } from './Tooltip';
 import { useHistory } from '../state/useHistory';
 import { AiBehavior } from '../state/settings';
 import { TweakText, CancelTweak } from '../../wailsjs/go/main/App';
@@ -259,7 +260,7 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
 
   // ---- render ----
   const fb = (kind: InsertKind, label: React.ReactNode, title: string) => (
-    <button className="fb" title={title} onClick={() => format(kind)}>{label}</button>
+    <Tooltip tip={title}><button className="fb" onClick={() => format(kind)}>{label}</button></Tooltip>
   );
 
   // Plain typing: record into history (coalesced), let React handle the value.
@@ -375,13 +376,14 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
         {fb('quote', '“”', 'Quote')}
         {fb('code', '</>', 'Code')}
         {fb('list', '≡', 'List')}
-        <button
-          className="fb"
-          title={`Text direction: ${textDir.toUpperCase()} (click to flip)`}
-          onClick={() => setTextDir(d => (d === 'ltr' ? 'rtl' : 'ltr'))}
-        >
-          {textDir === 'ltr' ? '⇥' : '⇤'}
-        </button>
+        <Tooltip tip={`Text direction: ${textDir.toUpperCase()} (click to flip)`}>
+          <button
+            className="fb"
+            onClick={() => setTextDir(d => (d === 'ltr' ? 'rtl' : 'ltr'))}
+          >
+            {textDir === 'ltr' ? '⇥' : '⇤'}
+          </button>
+        </Tooltip>
         <span className="sp" />
         <div className="seg-sm" role="group" aria-label="View mode">
           <button className={view === 'edit' ? 'on' : ''} onClick={() => setView('edit')}>Edit</button>
@@ -429,15 +431,16 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
           </div>
         )}
         {effectiveView === 'split' && (
-          <div
-            className="split-divider"
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize panes"
-            onPointerDown={onDividerDown}
-            onDoubleClick={() => setSplitPct(50)}
-            title="Drag to resize · double-click to reset"
-          />
+          <Tooltip tip="Drag to resize · double-click to reset">
+            <div
+              className="split-divider"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize panes"
+              onPointerDown={onDividerDown}
+              onDoubleClick={() => setSplitPct(50)}
+            />
+          </Tooltip>
         )}
         {effectiveView !== 'edit' && (
           <div

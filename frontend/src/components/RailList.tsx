@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { WorkspaceApi } from '../state/useWorkspace';
 import { FolderIcon } from './icons';
+import { Tooltip } from './Tooltip';
 
 // Three-pane layout: an icon rail of notebooks + a flat note list + the editor.
 // Scales to many notes; the editor itself is rendered by the parent.
@@ -33,18 +34,21 @@ export function RailList({ api, collapsed, onToggleCollapse }: Props) {
   return (
     <>
       <aside className="rail">
-        <button
-          className="rail-item"
-          aria-label={collapsed ? 'Show note list' : 'Hide note list'}
-          title={collapsed ? 'Show note list' : 'Hide note list'}
-          onClick={onToggleCollapse}
-        >{collapsed ? '»' : '«'}</button>
-        <button className="rail-new" aria-label="New note" onClick={() => api.newNote(sel === 'all' ? '' : sel)}>+</button>
-        <button className={`rail-item${sel === 'all' ? ' on' : ''}`} title="All notes" onClick={() => setSel('all')}>◎</button>
+        <Tooltip tip={collapsed ? 'Show note list' : 'Hide note list'}>
+          <button
+            className="rail-item"
+            aria-label={collapsed ? 'Show note list' : 'Hide note list'}
+            onClick={onToggleCollapse}
+          >{collapsed ? '»' : '«'}</button>
+        </Tooltip>
+        <Tooltip tip="New note"><button className="rail-new" aria-label="New note" onClick={() => api.newNote(sel === 'all' ? '' : sel)}>+</button></Tooltip>
+        <Tooltip tip="All notes"><button className={`rail-item${sel === 'all' ? ' on' : ''}`} onClick={() => setSel('all')}>◎</button></Tooltip>
         {topFolders.map(f => (
-          <button key={f.id} className={`rail-item${sel === f.id ? ' on' : ''}`} title={f.name} aria-label={f.name} onClick={() => setSel(f.id)}>
-            <FolderIcon />
-          </button>
+          <Tooltip key={f.id} tip={f.name}>
+            <button className={`rail-item${sel === f.id ? ' on' : ''}`} aria-label={f.name} onClick={() => setSel(f.id)}>
+              <FolderIcon />
+            </button>
+          </Tooltip>
         ))}
       </aside>
 
