@@ -121,7 +121,7 @@ export function MenuBar(props: MenuBarProps) {
         <Check label="Dark" on={settings.theme === 'dark'} onClick={run(() => setTheme('dark'))} />
         <Check label="System" on={settings.theme === 'system'} onClick={run(() => setTheme('system'))} />
         <Sep />
-        <GroupLabel>Direction</GroupLabel>
+        <GroupLabel>Interface direction</GroupLabel>
         <Check label="Left-to-right" on={settings.dir === 'ltr'} onClick={run(() => setDir('ltr'))} />
         <Check label="Right-to-left" on={settings.dir === 'rtl'} onClick={run(() => setDir('rtl'))} />
         <Sep />
