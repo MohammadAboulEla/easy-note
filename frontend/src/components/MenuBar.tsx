@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { ACCENTS } from '../state/settings';
+import { ACCENTS_QUICK } from '../state/settings';
 import { SettingsApi } from '../state/useSettings';
 
 export interface MenuBarProps {
@@ -127,7 +127,7 @@ export function MenuBar(props: MenuBarProps) {
         <Sep />
         <GroupLabel>Accent</GroupLabel>
         <div className="swatch-row">
-          {ACCENTS.map(hex => (
+          {ACCENTS_QUICK.map(hex => (
             <button
               key={hex}
               aria-pressed={settings.appearance.accent === hex}

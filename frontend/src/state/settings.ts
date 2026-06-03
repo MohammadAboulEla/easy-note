@@ -95,6 +95,17 @@ export const ACCENTS = [
   '#78716c', // warm grey
   '#64748b', // slate
 ];
+// A compact subset for the View menu's accent row (the full ACCENTS palette is
+// still offered in Settings → Appearance). Default terracotta first, then a
+// spread across the spectrum.
+export const ACCENTS_QUICK = [
+  '#e0613a', // terracotta (default)
+  '#3b82f6', // blue
+  '#22c55e', // green
+  '#7c3aed', // violet
+  '#e5484d', // red
+  '#64748b', // slate
+];
 // Reading-area background tints — comfortable page colors from reading apps
 // (paper white, sepia, cream, mint, cool grey), then a range of dark tints.
 export const PAGE_BGS = [
