@@ -235,7 +235,7 @@
   padding: 28px max(32px, calc((100% - var(--reading-width)) / 2)); user-select: text;
   box-sizing: border-box;
 }
-[dir="rtl"] .md-input { text-align: right; }
+.md-input[dir="rtl"] { text-align: right; }
 
 /* ---------- M4: AI tweak overlay ---------- */
 .ai-layer { position: absolute; z-index: 30; }
@@ -517,7 +517,7 @@ select.select-input option { background: var(--win); color: var(--ink); }
   font-family: var(--reading-font); font-size: var(--reading-size);
   line-height: var(--reading-leading); color: var(--reading-ink); user-select: text;
 }
-[dir="rtl"] .real { text-align: right; }
+.real[dir="rtl"] { text-align: right; }
 .real h1 { font-size: 1.7em; margin: 0 0 .5em; line-height: 1.25; }
 .real h2 { font-size: 1.35em; margin: 1.1em 0 .4em; }
 .real h3 { font-size: 1.12em; margin: 1em 0 .35em; }

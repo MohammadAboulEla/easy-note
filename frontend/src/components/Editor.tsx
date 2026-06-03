@@ -68,6 +68,7 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   { noteId, isNew, body, onChange, onStats, focus, behavior }, ref,
 ) {
   const [view, setView] = useState<ViewMode>('preview');
+  const [textDir, setTextDir] = useState<'ltr' | 'rtl'>('ltr');
   const [html, setHtml] = useState('');
   const [ai, setAi] = useState<AiState>(IDLE_AI);
   const taRef = useRef<HTMLTextAreaElement>(null);
@@ -343,6 +344,13 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
         {fb('quote', '“”', 'Quote')}
         {fb('code', '</>', 'Code')}
         {fb('list', '≡', 'List')}
+        <button
+          className="fb"
+          title={`Text direction: ${textDir.toUpperCase()} (click to flip)`}
+          onClick={() => setTextDir(d => (d === 'ltr' ? 'rtl' : 'ltr'))}
+        >
+          {textDir === 'ltr' ? '⇥' : '⇤'}
+        </button>
         <span className="sp" />
         <div className="seg-sm" role="group" aria-label="View mode">
           <button className={view === 'edit' ? 'on' : ''} onClick={() => setView('edit')}>Edit</button>
@@ -355,6 +363,7 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
           <textarea
             ref={taRef}
             className="md-input"
+            dir={textDir}
             value={body}
             placeholder="Start writing… select a paragraph to tweak it with AI."
             spellCheck
@@ -383,7 +392,7 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
         </div>
       ) : (
         <div className="preview">
-          <div className="real" dangerouslySetInnerHTML={{ __html: html }} />
+          <div className="real" dir={textDir} dangerouslySetInnerHTML={{ __html: html }} />
         </div>
       )}
     </div>
