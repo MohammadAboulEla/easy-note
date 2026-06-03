@@ -70,29 +70,52 @@ export const DEFAULT_AI_BEHAVIOR: AiBehavior = {
   ],
 };
 
-// Default accent swatches surfaced in the top controls & Settings.
-export const ACCENTS = ['#5b6cff', '#1f9d6b', '#e0613a', '#a755d4', '#d4a017', '#e5484d'];
-// Reading-area background tints — light tints first, then a range of dark tints.
+// Default accent swatches surfaced in the top controls & Settings. The palette
+// walks the hue wheel in even steps so no two swatches read as duplicates —
+// one distinct color per common modern-app accent family.
+export const ACCENTS = [
+  '#e5484d', // red
+  '#f97316', // orange
+  '#e0613a', // terracotta (default)
+  '#d4a017', // amber/gold
+  '#eab308', // yellow
+  '#84cc16', // lime
+  '#22c55e', // green
+  '#1f9d6b', // emerald
+  '#14b8a6', // teal
+  '#06b6d4', // cyan
+  '#0ea5e9', // sky
+  '#3b82f6', // blue
+  '#5b6cff', // indigo
+  '#7c3aed', // violet
+  '#a755d4', // purple
+  '#d946ef', // magenta
+  '#ec4899', // pink
+  '#f43f5e', // rose
+  '#78716c', // warm grey
+  '#64748b', // slate
+];
+// Reading-area background tints — comfortable page colors from reading apps
+// (paper white, sepia, cream, mint, cool grey), then a range of dark tints.
 export const PAGE_BGS = [
-  // light
-  '#fbfbfa', '#f7f1e3', '#eef4ef', '#f3eee7', '#eef1f6',
+  // light — paper-white omitted: the "A" (follow-theme) default already gives it
+  '#f7f1e3', // sepia (Kindle/iBooks)
+  '#faf3e0', // warm cream
+  '#eef4ef', // soft mint
+  '#eef1f6', // cool grey
   // dark
-  '#16171a', '#1e2024', '#202530', '#2b2620', '#1a211c', '#1c1a26', '#0f1012',
+  '#16171a', // near-black
+  '#1e2024', // charcoal
+  '#202530', // blue-charcoal
+  '#22201b', // warm dark (sepia night)
+  '#2b2620', // espresso
 ];
-// Reading-area ink (text) tints — dark inks for light pages, light inks for dark pages.
-export const INK_COLORS = [
-  // dark inks (for light pages)
-  '#2c2c2c', '#3a342c', '#1f2a33', '#33271f',
-  // light inks (for dark pages)
-  '#e9e9ea', '#e7e2d4', '#d4dce7', '#ecd9c8',
-];
-
-// AI quick-action bubble backgrounds — a few dark and light surfaces. Ink color
-// is derived automatically from the chosen background (see applySettings).
-export const AI_BUBBLE_BGS = [
-  '#34373e', '#1b1c1f', '#2b2f3a', '#3a2f2a',
-  '#c5c5bf', '#e8e6df', '#e6ecf2', '#f0e7dc',
-];
+// Reading-area ink (text) tints and AI bubble backgrounds reuse the same palette
+// as the page backgrounds so all three reading-area swatch rows line up
+// identically. (As ink, a tint colors the text; as a bubble bg, text contrast is
+// derived automatically — see applySettings.)
+export const INK_COLORS = PAGE_BGS;
+export const AI_BUBBLE_BGS = PAGE_BGS;
 
 /** True if a hex color is light enough to want dark text on top of it. */
 function isLightHex(hex: string): boolean {

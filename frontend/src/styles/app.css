@@ -257,12 +257,16 @@
 .bubble {
   display: flex; gap: 3px; align-items: center; padding: 6px;
   background: var(--ai-bubble-bg); color: var(--ai-bubble-ink); border-radius: 9px;
-  border: 1px solid color-mix(in oklch, var(--ai-bubble-ink) 12%, transparent);
-  box-shadow: 0 10px 24px -8px rgba(0,0,0,.45); white-space: nowrap;
+  border: 1px solid color-mix(in oklch, var(--ai-bubble-ink) 16%, transparent);
+  box-shadow: 0 6px 16px -8px rgba(0,0,0,.35); white-space: nowrap;
 }
 .bubble::after {
   content: ""; position: absolute; bottom: -6px; left: 50%; margin-left: -6px;
   width: 12px; height: 12px; background: var(--ai-bubble-bg); transform: rotate(45deg);
+  /* Rotated 45°, the right + bottom CSS edges become the two outward-facing
+     faces of the tip — border only those so it matches the bubble's outline. */
+  border-right: 1px solid color-mix(in oklch, var(--ai-bubble-ink) 16%, transparent);
+  border-bottom: 1px solid color-mix(in oklch, var(--ai-bubble-ink) 16%, transparent);
 }
 .ai-dot {
   width: 16px; height: 16px; border-radius: 50%; background: var(--accent);

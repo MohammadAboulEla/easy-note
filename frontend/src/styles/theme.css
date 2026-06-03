@@ -35,9 +35,9 @@
   --reading-width: 680px;
 
   /* --- AI quick-action bubble (user-configurable) --- */
-  /* Light theme: sidebar-family grey so the bubble belongs to the UI palette,
-     still a shade darker than the page so it reads as a floating popup. */
-  --ai-bubble-bg: #c5c5bf;
+  /* Light theme: match the sidebar surface so the bubble belongs to the UI
+     palette; a border + soft shadow keep it reading as a floating popup. */
+  --ai-bubble-bg: #e2e2df; /* = --chrome-2 (sidebar) */
   --ai-bubble-ink: #2c2c2c;
 
   /* --- type & shape --- */
