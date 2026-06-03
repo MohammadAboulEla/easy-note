@@ -28,7 +28,7 @@ interface Props {
 // Backend preset action keys; anything else is sent as a free-text prompt.
 const PRESET_ACTIONS = new Set(['improve', 'shorten', 'grammar', 'formal', 'summarize']);
 
-type ViewMode = 'edit' | 'preview';
+type ViewMode = 'edit' | 'split' | 'preview';
 
 const IDLE_AI: AiState = {
   phase: 'idle', x: 0, y: 0, sel: { start: 0, end: 0, text: '' }, prompt: '', result: '', error: '',
@@ -112,7 +112,7 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   }, [body, noteId]);
 
   useEffect(() => {
-    if (effectiveView !== 'preview') return;
+    if (effectiveView === 'edit') return;
     let alive = true;
     // Each render is now an IPC round-trip — debounce per-keystroke calls.
     const t = window.setTimeout(() => {
@@ -354,47 +354,51 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
         <span className="sp" />
         <div className="seg-sm" role="group" aria-label="View mode">
           <button className={view === 'edit' ? 'on' : ''} onClick={() => setView('edit')}>Edit</button>
+          <button className={view === 'split' ? 'on' : ''} onClick={() => setView('split')}>Split</button>
           <button className={view === 'preview' ? 'on' : ''} onClick={() => setView('preview')}>Preview</button>
         </div>
       </div>
 
-      {effectiveView === 'edit' ? (
-        <div className="editor-area" ref={areaRef}>
-          <textarea
-            ref={taRef}
-            className="md-input"
-            dir={textDir}
-            value={body}
-            placeholder="Start writing… select a paragraph to tweak it with AI."
-            spellCheck
-            onChange={onType}
-            onKeyDown={onKeyDown}
-            onKeyUp={report}
-            onClick={report}
-            onSelect={report}
-            onMouseDown={() => { if (ai.phase !== 'idle') setAi(IDLE_AI); }}
-            onMouseUp={openBubble}
-          />
-          <AiOverlay
-            state={ai}
-            commands={behavior.commands}
-            onQuick={action => runTweak(action)}
-            onAsk={() => setAi(s => ({ ...s, phase: 'prompt' }))}
-            onPromptChange={v => setAi(s => ({ ...s, prompt: v }))}
-            onRunPrompt={() => runTweak('', ai.prompt)}
-            onCommand={instruction => runInstruction(instruction)}
-            onReplace={() => replaceWith(ai.result, false)}
-            onInsert={() => replaceWith(ai.result, true)}
-            onDiscard={() => setAi(IDLE_AI)}
-            onCancel={cancelTweak}
-            onRetry={() => runTweak('', ai.prompt)}
-          />
-        </div>
-      ) : (
-        <div className="preview">
-          <div className="real" dir={textDir} dangerouslySetInnerHTML={{ __html: html }} />
-        </div>
-      )}
+      <div className={effectiveView === 'split' ? 'editor-split' : 'editor-single'}>
+        {effectiveView !== 'preview' && (
+          <div className="editor-area" ref={areaRef}>
+            <textarea
+              ref={taRef}
+              className="md-input"
+              dir={textDir}
+              value={body}
+              placeholder="Start writing… select a paragraph to tweak it with AI."
+              spellCheck
+              onChange={onType}
+              onKeyDown={onKeyDown}
+              onKeyUp={report}
+              onClick={report}
+              onSelect={report}
+              onMouseDown={() => { if (ai.phase !== 'idle') setAi(IDLE_AI); }}
+              onMouseUp={openBubble}
+            />
+            <AiOverlay
+              state={ai}
+              commands={behavior.commands}
+              onQuick={action => runTweak(action)}
+              onAsk={() => setAi(s => ({ ...s, phase: 'prompt' }))}
+              onPromptChange={v => setAi(s => ({ ...s, prompt: v }))}
+              onRunPrompt={() => runTweak('', ai.prompt)}
+              onCommand={instruction => runInstruction(instruction)}
+              onReplace={() => replaceWith(ai.result, false)}
+              onInsert={() => replaceWith(ai.result, true)}
+              onDiscard={() => setAi(IDLE_AI)}
+              onCancel={cancelTweak}
+              onRetry={() => runTweak('', ai.prompt)}
+            />
+          </div>
+        )}
+        {effectiveView !== 'edit' && (
+          <div className="preview">
+            <div className="real" dir={textDir} dangerouslySetInnerHTML={{ __html: html }} />
+          </div>
+        )}
+      </div>
     </div>
   );
 });

@@ -222,6 +222,12 @@
 .fmtbar .seg-sm button { padding: 5px 12px; color: var(--ink-soft); border: 0; background: transparent; }
 .fmtbar .seg-sm button.on { background: var(--accent); color: #fff; }
 
+/* Wrapper around the writing surface + preview. In single-view modes it's a
+   transparent passthrough; in split it lays both panes side by side. */
+.editor-single, .editor-split { flex: 1; min-height: 0; display: flex; min-width: 0; }
+.editor-split > .editor-area, .editor-split > .preview { flex: 1 1 50%; min-width: 0; }
+.editor-split > .preview { border-inline-start: 1px solid var(--stroke); }
+
 .editor-area { flex: 1; min-height: 0; position: relative; display: flex; background: var(--reading-bg); }
 /* The writing surface honors the same reading-area settings as the preview:
    font family/size/line-spacing, page background, and content width. */

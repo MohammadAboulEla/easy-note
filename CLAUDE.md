@@ -54,6 +54,33 @@ as a single frameless desktop window (custom in-app title bar replaces the OS ch
 (`onChange(newBody)`), the caret/selection is restored via `pendingSel.current` plus a
 `useLayoutEffect` keyed on `body`. Any new edit operation must follow this pattern.
 
+## Known issues
+
+**RTL emphasis rendering (`**bold**` / `*italic*`) on mixed Arabic/RTL lines — UNRESOLVED, deprioritized.**
+On some RTL lines, `**…**` either renders the literal asterisks or visually splits the
+marker pair across a space (e.g. typed `**كلمة عربي**` displays as `…كلمة** عربي*`). Root
+cause is the CommonMark emphasis *flanking* algorithm interacting with bidirectional text
+— it is LTR-designed and classifies the `**` open/close based on adjacent characters,
+which the Unicode bidi reordering then displays in a confusing visual order.
+
+What we tried:
+1. **Strip bidi-format controls** at render time in `markdown.go` (`sanitizeRTL`): removes
+   all zero-width / Unicode category `Cf` runes (RLM/LRM, ZWNJ/ZWJ, ZWSP, BOM, embeddings,
+   overrides, isolates) plus folds NBSP→space. **This fixed the English-at-line-start case
+   and many Arabic cases** where an invisible mark sat between `**` and the letter, and is
+   kept. It did **not** fix every Arabic case.
+2. The remaining failures are not strippable: the stored asterisks themselves end up
+   misplaced/unbalanced in logical order, or are balanced but bidi-reordered to *look*
+   broken. Distinguishing the two needs the raw code points of a failing line, which we
+   haven't captured. A real fix would be either lenient marker repair in `sanitizeRTL` (if
+   bytes are unbalanced) or bidi-isolating inline emphasis runs in the preview markup (if
+   it's purely a display artifact) — neither attempted yet.
+
+**This same bug reproduces in the user's Obsidian install**, which is also CommonMark-based.
+That strongly suggests it is a Markdown-spec / bidi limitation, **not necessarily an
+EasyNote code defect**. Leave `sanitizeRTL` in place; do not spend further effort here
+unless the user revisits it with a captured raw failing line.
+
 ## Conventions (must follow)
 
 - **CSS:** drive everything through global CSS custom properties on `:root`/`[data-theme]`;
