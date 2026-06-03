@@ -20,6 +20,8 @@ export function GetSettings():Promise<main.Settings>;
 
 export function GetWorkspace():Promise<main.Workspace>;
 
+export function MoveNote(arg1:string,arg2:string):Promise<main.Note>;
+
 export function NewFolderOnDisk(arg1:string):Promise<string>;
 
 export function OpenFile():Promise<string>;

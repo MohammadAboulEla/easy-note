@@ -68,6 +68,10 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
   { noteId, isNew, body, onChange, onStats, focus, behavior }, ref,
 ) {
   const [view, setView] = useState<ViewMode>('preview');
+  // Split-pane ratio: percentage width of the editor (left) pane. Dragged via
+  // the divider; clamped so neither pane collapses.
+  const [splitPct, setSplitPct] = useState(50);
+  const splitRef = useRef<HTMLDivElement>(null);
   const [textDir, setTextDir] = useState<'ltr' | 'rtl'>('ltr');
   const [html, setHtml] = useState('');
   const [ai, setAi] = useState<AiState>(IDLE_AI);
@@ -226,6 +230,33 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
     setAi(IDLE_AI);
   }
 
+  // Drag the split divider: track pointer over the split container and set the
+  // left pane width as a percentage. Pointer capture keeps it smooth over the
+  // textarea/iframe-free preview.
+  function onDividerDown(e: React.PointerEvent) {
+    e.preventDefault();
+    const container = splitRef.current;
+    if (!container) return;
+    const move = (ev: PointerEvent) => {
+      const r = container.getBoundingClientRect();
+      // Respect text direction: in RTL the editor pane is on the right.
+      const raw = ((ev.clientX - r.left) / r.width) * 100;
+      const pct = textDir === 'rtl' ? 100 - raw : raw;
+      setSplitPct(clamp(pct, 20, 80));
+    };
+    // Suppress text selection / caret jumps in either pane while dragging.
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    const up = () => {
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
   // ---- render ----
   const fb = (kind: InsertKind, label: React.ReactNode, title: string) => (
     <button className="fb" title={title} onClick={() => format(kind)}>{label}</button>
@@ -359,9 +390,13 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
         </div>
       </div>
 
-      <div className={effectiveView === 'split' ? 'editor-split' : 'editor-single'}>
+      <div className={effectiveView === 'split' ? 'editor-split' : 'editor-single'} ref={splitRef}>
         {effectiveView !== 'preview' && (
-          <div className="editor-area" ref={areaRef}>
+          <div
+            className="editor-area"
+            ref={areaRef}
+            style={effectiveView === 'split' ? { flex: `0 0 ${splitPct}%` } : undefined}
+          >
             <textarea
               ref={taRef}
               className="md-input"
@@ -393,8 +428,22 @@ export const Editor = forwardRef<EditorHandle, Props>(function Editor(
             />
           </div>
         )}
+        {effectiveView === 'split' && (
+          <div
+            className="split-divider"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize panes"
+            onPointerDown={onDividerDown}
+            onDoubleClick={() => setSplitPct(50)}
+            title="Drag to resize · double-click to reset"
+          />
+        )}
         {effectiveView !== 'edit' && (
-          <div className="preview">
+          <div
+            className="preview"
+            style={effectiveView === 'split' ? { flex: '1 1 0' } : undefined}
+          >
             <div className="real" dir={textDir} dangerouslySetInnerHTML={{ __html: html }} />
           </div>
         )}

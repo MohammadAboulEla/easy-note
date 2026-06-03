@@ -88,26 +88,11 @@ func (a *App) persistWorkspace() {
 	_ = os.Rename(tmp, a.workspacePath())
 }
 
+// seedWorkspace returns an empty workspace. First-run sample content is no longer
+// seeded as embedded JSON notes — it is created as real .md files in an on-disk
+// vault (see seedVault in files.go), so every note has a known file location.
 func seedWorkspace() Workspace {
-	t := now()
-	bt := "```" // fenced code-block delimiter (raw literals can't contain backticks)
-	personal := Folder{ID: uuid.NewString(), Name: "Personal"}
-	work := Folder{ID: uuid.NewString(), Name: "Work"}
-	return Workspace{
-		Folders: []Folder{personal, work},
-		Notes: []Note{
-			{ID: uuid.NewString(), Title: "Welcome", FolderID: personal.ID, CreatedAt: t, UpdatedAt: t,
-				Body: "# Welcome to EasyNote\n\nA minimalist, **markdown-first** notebook with built-in AI editing.\n\n- Write in markdown\n- Toggle between edit and preview\n- Select a paragraph and ask AI to tweak it\n\n> Tip: open Settings to configure your AI provider and tune the appearance."},
-			{ID: uuid.NewString(), Title: "Reading list", FolderID: personal.ID, CreatedAt: t, UpdatedAt: t,
-				Body: "# Reading list\n\nMy books for **2026**.\n\n- Dune\n- Project Hail Mary\n- The Overstory\n\n> A quote I liked."},
-			{ID: uuid.NewString(), Title: "Markdown cheatsheet", FolderID: personal.ID, CreatedAt: t, UpdatedAt: t,
-				Body: "# Markdown cheatsheet\n\nA quick tour of what the preview can render.\n\n## Text\n\n**Bold**, *italic*, ~~strikethrough~~, `inline code`, and [a link](https://wails.io).\n\n## Lists\n\n1. First step\n2. Second step\n   - a nested bullet\n   - another one\n3. Third step\n\n- [x] Done task\n- [ ] Pending task\n\n## Table\n\n| Feature      | Status | Notes              |\n| ------------ | :----: | ------------------ |\n| Editor       |   ✅   | plain textarea     |\n| AI tweak     |   ✅   | select + prompt    |\n| Cloud sync   |   ❌   | not in v1          |\n\n## Quote\n\n> Simplicity is the ultimate sophistication.\n\n---\n\nThat horizontal rule above is a `---`."},
-			{ID: uuid.NewString(), Title: "Python snippets", FolderID: work.ID, CreatedAt: t, UpdatedAt: t,
-				Body: "# Python snippets\n\nSyntax highlighting is rendered server-side (goldmark + Chroma).\n\n## Fibonacci\n\n" + bt + "python\ndef fib(n: int) -> int:\n    \"\"\"Return the nth Fibonacci number.\"\"\"\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a\n\n\nif __name__ == \"__main__\":\n    print([fib(i) for i in range(10)])\n" + bt + "\n\n## A small class\n\n" + bt + "python\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Note:\n    title: str\n    body: str = \"\"\n\n    def word_count(self) -> int:\n        return len(self.body.split())\n" + bt + "\n\n## Complexity table\n\n| Operation | List | Dict |\n| --------- | :--: | :--: |\n| lookup    | O(n) | O(1) |\n| append    | O(1) | —    |\n| delete    | O(n) | O(1) |\n"},
-			{ID: uuid.NewString(), Title: "Roadmap", FolderID: work.ID, CreatedAt: t, UpdatedAt: t,
-				Body: "# Roadmap\n\n## Q3\n\n- Ship editor\n- Wire AI tweak\n"},
-		},
-	}
+	return Workspace{}
 }
 
 // ---- Bound CRUD API (exposed to the frontend) ----
@@ -161,6 +146,91 @@ func (a *App) UpdateNote(in Note) (Note, error) {
 		}
 	}
 	return Note{}, errors.New("note not found")
+}
+
+// MoveNote moves a note into a different folder. The targetFolderID is either an
+// embedded folder id, "" for Unfiled, or a "linked:<dir>" id for a real folder on
+// disk. The four combinations of embedded/linked source and target are handled:
+//
+//   - embedded → embedded/unfiled: just rewrite the note's FolderID.
+//   - embedded → linked: create a real .md file in the target dir, drop the JSON note.
+//   - linked   → linked: move the file on disk into the target dir.
+//   - linked   → embedded/unfiled: read the file into an embedded note, drop the
+//     on-disk index entry is NOT done (the file stays); the embedded copy wins.
+//
+// Returns the moved note in its new form so the frontend can reconcile ids.
+func (a *App) MoveNote(noteID, targetFolderID string) (Note, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+
+	srcPath, srcLinked := linkedNotePath(noteID)
+	dstDir, dstLinked := linkedFolderDir(targetFolderID)
+
+	switch {
+	case srcLinked && dstLinked:
+		return a.moveLinkedFile(srcPath, dstDir)
+
+	case srcLinked && !dstLinked:
+		// Linked file → embedded note: read it in, leave the file on disk.
+		n, err := readNoteFile(srcPath, "")
+		if err != nil {
+			return Note{}, err
+		}
+		n.ID = uuid.NewString()
+		n.Linked = false
+		n.Path = ""
+		n.FolderID = targetFolderID
+		a.ws.Notes = append(a.ws.Notes, n)
+		a.persistWorkspace()
+		return n, nil
+
+	case !srcLinked && dstLinked:
+		// Embedded note → linked folder: write a real file, drop the JSON note.
+		var moved *Note
+		for i := range a.ws.Notes {
+			if a.ws.Notes[i].ID == noteID {
+				moved = &a.ws.Notes[i]
+				break
+			}
+		}
+		if moved == nil {
+			return Note{}, errors.New("note not found")
+		}
+		n, err := a.createLinkedNote(dstDir, moved.Title)
+		if err != nil {
+			return Note{}, err
+		}
+		n.Body = moved.Body
+		if _, err := a.writeLinkedNote(n); err != nil {
+			return Note{}, err
+		}
+		a.removeEmbedded(noteID)
+		a.persistWorkspace()
+		return n, nil
+
+	default:
+		// Embedded → embedded/unfiled.
+		for i := range a.ws.Notes {
+			if a.ws.Notes[i].ID == noteID {
+				a.ws.Notes[i].FolderID = targetFolderID
+				a.ws.Notes[i].UpdatedAt = now()
+				a.persistWorkspace()
+				return a.ws.Notes[i], nil
+			}
+		}
+		return Note{}, errors.New("note not found")
+	}
+}
+
+// removeEmbedded drops an embedded note by id. Callers hold a.mu.
+func (a *App) removeEmbedded(id string) {
+	out := a.ws.Notes[:0]
+	for _, n := range a.ws.Notes {
+		if n.ID != id {
+			out = append(out, n)
+		}
+	}
+	a.ws.Notes = out
 }
 
 // DeleteNote removes a note by id.

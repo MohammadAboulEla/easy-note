@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Folder, Note, WorkspaceApi } from '../state/useWorkspace';
 import { FolderIcon } from './icons';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -26,6 +26,32 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState<Editing>(null);
   const [pendingDelete, setPendingDelete] = useState<Pending>(null);
+  // Drag-and-drop: the note being dragged, and the folder id currently hovered
+  // as a drop target ('' = Unfiled, 'linked:<dir>' = a linked folder).
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
+
+  const onDrop = (target: string) => {
+    if (dragId) api.moveNote(dragId, target);
+    setDragId(null);
+    setDropTarget(null);
+  };
+  // dt is the drop-target id for this folder/section ('' for Unfiled).
+  const dropProps = (dt: string) => ({
+    onDragOver: (e: React.DragEvent) => {
+      if (!dragId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (dropTarget !== dt) setDropTarget(dt);
+    },
+    onDragLeave: (e: React.DragEvent) => {
+      // Only clear when leaving the element itself, not a child.
+      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+        setDropTarget(t => (t === dt ? null : t));
+      }
+    },
+    onDrop: (e: React.DragEvent) => { e.preventDefault(); onDrop(dt); },
+  });
 
   const confirmDelete = () => {
     if (!pendingDelete) return;
@@ -98,10 +124,13 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
   const noteRow = (n: Note, flat = false) => (
     <div
       key={n.id}
-      className={`note-item${n.id === activeId ? ' active' : ''}${flat ? ' flat' : ''}`}
+      className={`note-item${n.id === activeId ? ' active' : ''}${flat ? ' flat' : ''}${n.id === dragId ? ' dragging' : ''}`}
       role="button"
       tabIndex={0}
+      draggable={editing?.id !== n.id}
       aria-current={n.id === activeId}
+      onDragStart={e => { setDragId(n.id); e.dataTransfer.effectAllowed = 'move'; }}
+      onDragEnd={() => { setDragId(null); setDropTarget(null); }}
       onClick={() => api.select(n.id)}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); api.select(n.id); } }}
       onDoubleClick={() => setEditing({ kind: 'note', id: n.id })}
@@ -123,7 +152,9 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
     const kids = notes.filter(n => n.folderId === f.id);
     return (
       <div key={f.id}>
-        <div className="folder" onClick={() => toggleFolder(f.id)}
+        <div className={`folder${dropTarget === f.id ? ' drop-target' : ''}`}
+          onClick={() => toggleFolder(f.id)}
+          {...dropProps(f.id)}
           onDoubleClick={() => { if (!f.linked) setEditing({ kind: 'folder', id: f.id }); }}>
           <span className="tri">{open ? '▾' : '▸'}</span>
           <FolderIcon />
@@ -174,11 +205,12 @@ export function Sidebar({ api, collapsed, onExpand, onCollapse }: Props) {
               <button className="sec-add" aria-label="New notebook" onClick={() => api.newFolder()}>+</button>
             </div>
             {topFolders.map(folderBlock)}
-            {unfiled.length > 0 ? (
-              <>
+            {(unfiled.length > 0 || dragId) ? (
+              <div className={dropTarget === '' && dragId ? 'drop-target' : undefined} {...dropProps('')}>
                 <div className="sec">Unfiled</div>
                 {unfiled.map(n => noteRow(n, true))}
-              </>
+                {unfiled.length === 0 ? <div className="empty">Drop here to unfile</div> : null}
+              </div>
             ) : null}
           </>
         )}

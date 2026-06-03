@@ -21,14 +21,30 @@ function App() {
   const editorRef = useRef<EditorHandle>(null);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
-  const [modal, setModal] = useState<'settings' | 'about' | 'guide' | null>(null);
+  const [modal, setModal] = useState<'settings' | 'about' | 'guide' | 'needFolder' | null>(null);
   const [stats, setStats] = useState<EditorStats>(ZERO_STATS);
+
+  // Obsidian-style: a note always lives in a real folder, so it has a known
+  // location on disk. If no folder exists yet, prompt the user to create/open
+  // one instead of silently creating an in-app (workspace.json) note. A folderId
+  // is passed straight through (the "+" on an existing folder).
+  const newNote = (folderId?: string) => {
+    // No real folder targeted (undefined or "" = Unfiled) and none exist yet →
+    // prompt to create/open one rather than make an invisible workspace.json note.
+    if (!folderId && ws.folders.length === 0) {
+      setModal('needFolder');
+      return;
+    }
+    ws.newNote(folderId);
+  };
+  // The sidebars create notes via api.newNote; route them through the guard too.
+  const guardedWs = { ...ws, newNote: async (folderId?: string) => { newNote(folderId); } };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
       if (e.key === 's') { e.preventDefault(); ws.flush(); }
-      else if (e.key === 'n') { e.preventDefault(); ws.newNote(); }
+      else if (e.key === 'n') { e.preventDefault(); newNote(); }
       else if (e.key === 'o') { e.preventDefault(); ws.openFile(); }
       else if (e.key === '\\') { e.preventDefault(); setSidebarCollapsed(c => !c); }
     };
@@ -55,7 +71,10 @@ function App() {
   ) : (
     <div className="editor">
       <div className="editor-empty">
-        {ws.loaded ? 'No note selected. Create one with “New Note”.' : 'Loading…'}
+        {!ws.loaded ? 'Loading…'
+          : ws.folders.length === 0
+            ? 'No folder yet. Create or open a folder to start adding notes.'
+            : 'No note selected. Create one with “New Note”.'}
       </div>
     </div>
   );
@@ -67,7 +86,7 @@ function App() {
       {focusMode ? null : (
         <MenuBar
           settingsApi={settingsApi}
-          onNewNote={() => ws.newNote()}
+          onNewNote={() => newNote()}
           onNewFolder={() => ws.newFolder()}
           onOpenFolder={() => ws.openFolder()}
           onOpenFile={() => ws.openFile()}
@@ -91,7 +110,7 @@ function App() {
         ) : layout === 'three-pane' ? (
           <>
             <RailList
-              api={ws}
+              api={guardedWs}
               collapsed={sidebarCollapsed}
               onToggleCollapse={() => setSidebarCollapsed(c => !c)}
             />
@@ -100,7 +119,7 @@ function App() {
         ) : (
           <>
             <Sidebar
-              api={ws}
+              api={guardedWs}
               collapsed={sidebarCollapsed}
               onExpand={() => setSidebarCollapsed(false)}
               onCollapse={() => setSidebarCollapsed(true)}
@@ -115,6 +134,27 @@ function App() {
       {modal === 'settings' ? <SettingsDialog api={settingsApi} onClose={() => setModal(null)} /> : null}
       {modal === 'about' ? <AboutDialog onClose={() => setModal(null)} /> : null}
       {modal === 'guide' ? <GuideDialog onClose={() => setModal(null)} /> : null}
+      {modal === 'needFolder' ? (
+        <div className="modal-scrim" onMouseDown={() => setModal(null)}>
+          <div className="dlg confirm-dlg" role="dialog" aria-modal="true" aria-label="Create a folder first"
+            onMouseDown={e => e.stopPropagation()}>
+            <div className="dlg-head">
+              <h3>Create a folder first</h3>
+              <button className="x" aria-label="Close" onClick={() => setModal(null)}>✕</button>
+            </div>
+            <div className="confirm-body">
+              <p>EasyNote keeps every note as a real <code>.md</code> file inside a folder on
+                your disk, so you always know where it lives. Create a new folder or open an
+                existing one, then add your note there.</p>
+            </div>
+            <div className="dlg-foot">
+              <button className="ghost" onClick={() => setModal(null)}>Cancel</button>
+              <button className="ghost" onClick={() => { setModal(null); ws.openFolder(); }}>Open Folder…</button>
+              <button className="solid" autoFocus onClick={() => { setModal(null); ws.newFolder(); }}>New Folder</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

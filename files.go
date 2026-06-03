@@ -197,6 +197,30 @@ func (a *App) createLinkedNote(dir, title string) (Note, error) {
 	return readNoteFile(path, linkedFolderID(dir))
 }
 
+// moveLinkedFile moves a linked .md file into dstDir, resolving filename
+// collisions, and returns it as a linked note under the destination folder.
+func (a *App) moveLinkedFile(srcPath, dstDir string) (Note, error) {
+	if info, err := os.Stat(dstDir); err != nil || !info.IsDir() {
+		return Note{}, errors.New("target folder not found")
+	}
+	if filepath.Dir(srcPath) == dstDir {
+		// Already in the target folder; nothing to do.
+		return readNoteFile(srcPath, linkedFolderID(dstDir))
+	}
+	base := strings.TrimSuffix(filepath.Base(srcPath), filepath.Ext(srcPath))
+	dst := filepath.Join(dstDir, base+".md")
+	for i := 2; ; i++ {
+		if _, err := os.Stat(dst); os.IsNotExist(err) {
+			break
+		}
+		dst = filepath.Join(dstDir, base+"-"+itoa(i)+".md")
+	}
+	if err := os.Rename(srcPath, dst); err != nil {
+		return Note{}, err
+	}
+	return readNoteFile(dst, linkedFolderID(dstDir))
+}
+
 // itoa avoids importing strconv for one use.
 func itoa(n int) string {
 	if n == 0 {
@@ -223,6 +247,76 @@ func sanitizeFilename(s string) string {
 		out = append(out, r)
 	}
 	return strings.TrimRight(strings.TrimSpace(string(out)), ". ")
+}
+
+// ---- First-run seeding (real files on disk) ----
+//
+// On a truly fresh install we create a real "EasyNote" vault folder on disk and
+// write the welcome/sample notes into it as actual .md files, then register the
+// folder as a linked root. This keeps the app's model uniform — every note is a
+// real file in a known location — with no invisible workspace.json entries. The
+// user can move, edit, or delete these like any other note.
+
+// seedFile is one sample note written to disk on first run.
+type seedFile struct {
+	name string // filename without extension
+	body string
+}
+
+// makeVaultDir creates an "EasyNote" directory inside parent, suffixing a number
+// if one already exists, and returns its absolute path. It returns an error if
+// the directory cannot be created (e.g. a non-writable redirected special folder).
+func makeVaultDir(parent string) (string, error) {
+	dir := filepath.Join(parent, "EasyNote")
+	for i := 2; ; i++ {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			break
+		}
+		dir = filepath.Join(parent, "EasyNote-"+itoa(i))
+	}
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return "", err
+	}
+	abs, err := filepath.Abs(dir)
+	if err != nil {
+		abs = dir
+	}
+	return abs, nil
+}
+
+// seedVault creates the on-disk vault and sample files, returning the absolute
+// vault path. Callers hold a.mu. It is idempotent-ish: if an "EasyNote" folder
+// already exists at the target it suffixes a number rather than overwriting.
+func (a *App) seedVault() (string, error) {
+	// Seed into the app data dir (%APPDATA%/EasyNote on Windows) — the same
+	// always-writable location the app's JSON metadata uses. We avoid the user's
+	// Documents folder: on Windows it is often a redirected/ReadOnly junction that
+	// os.Stat reports as present yet os.MkdirAll cannot write into.
+	dir, err := makeVaultDir(a.dataDir)
+	if err != nil {
+		return "", err
+	}
+	for _, f := range seedFiles() {
+		path := filepath.Join(dir, sanitizeFilename(f.name)+".md")
+		_ = os.WriteFile(path, []byte(f.body), 0o644)
+	}
+	if !contains(a.links.Folders, dir) {
+		a.links.Folders = append(a.links.Folders, dir)
+		a.persistLinks()
+	}
+	return dir, nil
+}
+
+// seedFiles is the sample content shipped on first run, as real .md files.
+func seedFiles() []seedFile {
+	bt := "```" // fenced code-block delimiter (raw literals can't contain backticks)
+	return []seedFile{
+		{name: "Welcome", body: "# Welcome to EasyNote\n\nA minimalist, **markdown-first** notebook with built-in AI editing.\n\n- Write in markdown\n- Toggle between edit and preview\n- Select a paragraph and ask AI to tweak it\n\n> Tip: open Settings to configure your AI provider and tune the appearance.\n\nEvery note you see is a real `.md` file in this folder on your disk — move, rename, or delete them freely."},
+		{name: "Reading list", body: "# Reading list\n\nMy books for **2026**.\n\n- Dune\n- Project Hail Mary\n- The Overstory\n\n> A quote I liked."},
+		{name: "Markdown cheatsheet", body: "# Markdown cheatsheet\n\nA quick tour of what the preview can render.\n\n## Text\n\n**Bold**, *italic*, ~~strikethrough~~, `inline code`, and [a link](https://wails.io).\n\n## Lists\n\n1. First step\n2. Second step\n   - a nested bullet\n   - another one\n3. Third step\n\n- [x] Done task\n- [ ] Pending task\n\n## Table\n\n| Feature      | Status | Notes              |\n| ------------ | :----: | ------------------ |\n| Editor       |   ✅   | plain textarea     |\n| AI tweak     |   ✅   | select + prompt    |\n| Cloud sync   |   ❌   | not in v1          |\n\n## Quote\n\n> Simplicity is the ultimate sophistication.\n\n---\n\nThat horizontal rule above is a `---`."},
+		{name: "Python snippets", body: "# Python snippets\n\nSyntax highlighting is rendered server-side (goldmark + Chroma).\n\n## Greeting\n\n" + bt + "python\ndef greet(name: str, *, excited: bool = False) -> str:\n    \"\"\"Return a friendly greeting.\"\"\"\n    punctuation = \"!\" if excited else \".\"\n    return f\"Hello, {name}{punctuation}\"\n\n\nprint(greet(\"world\", excited=True))\n" + bt + "\n\n## A small class\n\n" + bt + "python\nfrom dataclasses import dataclass\n\n\n@dataclass\nclass Note:\n    title: str\n    body: str = \"\"\n\n    def word_count(self) -> int:\n        return len(self.body.split())\n" + bt + "\n\n## Complexity table\n\n| Operation | List | Dict |\n| --------- | :--: | :--: |\n| lookup    | O(n) | O(1) |\n| append    | O(1) | —    |\n| delete    | O(n) | O(1) |\n"},
+		{name: "Roadmap", body: "# Roadmap\n\n## Q3\n\n- Ship editor\n- Wire AI tweak\n"},
+	}
 }
 
 // ---- Bound API: native pickers + link management ----

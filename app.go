@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"sync"
 )
 
@@ -51,7 +52,21 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.dataDir = appDataDir()
+
+	// A truly fresh install has neither persisted notes nor linked roots. Detect
+	// it before loading so we can seed sample content as real files on disk
+	// rather than as invisible workspace.json entries.
+	_, wsErr := os.Stat(a.workspacePath())
+	_, linksErr := os.Stat(a.linksPath())
+	freshInstall := os.IsNotExist(wsErr) && os.IsNotExist(linksErr)
+
 	a.loadWorkspace()
 	a.loadSettings()
 	a.loadLinks()
+
+	if freshInstall {
+		a.mu.Lock()
+		_, _ = a.seedVault()
+		a.mu.Unlock()
+	}
 }

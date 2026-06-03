@@ -176,6 +176,11 @@
 .note-item.active { background: var(--accent-soft); color: var(--ink); }
 .folder:hover, .note-item:hover { background: var(--fill); }
 .note-item.active:hover { background: var(--accent-soft); }
+.note-item[draggable="true"] { cursor: grab; }
+.note-item.dragging { opacity: 0.45; }
+/* Drop targets: a folder header or the Unfiled section being hovered while dragging. */
+.folder.drop-target { background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.drop-target > .sec { color: var(--accent); }
 
 .ic { width: 13px; height: 13px; border: 1.5px solid var(--ink-soft); border-radius: 3px; flex: none; }
 .ic.f { border-radius: 2px 4px 4px 4px; }
@@ -226,7 +231,13 @@
    transparent passthrough; in split it lays both panes side by side. */
 .editor-single, .editor-split { flex: 1; min-height: 0; display: flex; min-width: 0; }
 .editor-split > .editor-area, .editor-split > .preview { flex: 1 1 50%; min-width: 0; }
-.editor-split > .preview { border-inline-start: 1px solid var(--stroke); }
+/* Draggable divider between the two split panes. Replaces the static preview
+   border; widens its hit area on hover. */
+.split-divider {
+  flex: 0 0 5px; align-self: stretch; cursor: col-resize; background: var(--stroke);
+  position: relative; z-index: 1; touch-action: none;
+}
+.split-divider:hover, .split-divider:active { background: var(--accent); }
 
 .editor-area { flex: 1; min-height: 0; position: relative; display: flex; background: var(--reading-bg); }
 /* The writing surface honors the same reading-area settings as the preview:
@@ -291,7 +302,8 @@
 .ai-pop .row1 b { font-size: 12.5px; }
 .prompt-input {
   width: 100%; height: 34px; border: 1.5px solid var(--stroke); border-radius: 7px;
-  padding: 0 10px; font-size: 12px; color: var(--ink); background: var(--paper); outline: none;
+  padding: 0 10px; font-size: 13px; color: var(--ink); background: var(--paper); outline: none;
+  font-family: var(--reading-font);
 }
 .prompt-input:focus { border-color: var(--accent); }
 .ai-pop .chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; }
@@ -552,9 +564,12 @@ select.select-input option { background: var(--win); color: var(--ink); }
 }
 .real pre {
   background: var(--fill); border: 1px solid var(--stroke); border-radius: 8px;
-  padding: 12px 14px; overflow: auto; margin: 0 0 .9em;
+  padding: 12px 14px; overflow-x: auto; margin: 0 0 .9em;
+  /* Code must not soft-wrap mid-statement (.real sets pre-wrap for prose); keep
+     lines intact and scroll horizontally instead — standard code-block behavior. */
+  white-space: pre;
 }
-.real pre code { background: transparent; padding: 0; }
+.real pre code { background: transparent; padding: 0; white-space: pre; }
 
 /* Chroma class-based syntax highlighting. Colors come from theme.css tokens so
    code tracks light/dark. goldmark wraps highlighted blocks in <pre class="chroma">. */

@@ -38,6 +38,10 @@ export function GetWorkspace() {
   return window['go']['main']['App']['GetWorkspace']();
 }
 
+export function MoveNote(arg1, arg2) {
+  return window['go']['main']['App']['MoveNote'](arg1, arg2);
+}
+
 export function NewFolderOnDisk(arg1) {
   return window['go']['main']['App']['NewFolderOnDisk'](arg1);
 }

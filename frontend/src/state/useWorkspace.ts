@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   CloseLink, CreateNote, DeleteFolder, DeleteNote, GetWorkspace,
-  NewFolderOnDisk, OpenFile, OpenFolder, RenameFolder, UpdateNote,
+  MoveNote, NewFolderOnDisk, OpenFile, OpenFolder, RenameFolder, UpdateNote,
 } from '../../wailsjs/go/main/App';
 import { main } from '../../wailsjs/go/models';
 
@@ -29,6 +29,8 @@ export interface WorkspaceApi {
   renameFolder: (id: string, name: string) => Promise<void>;
   removeNote: (id: string) => Promise<void>;
   removeFolder: (id: string) => Promise<void>;
+  // Move a note into another folder (id, "" for Unfiled, or a "linked:<dir>" id).
+  moveNote: (id: string, targetFolderId: string) => Promise<void>;
   setBody: (id: string, body: string) => void;
   flush: () => Promise<void>;
   // Linked files/folders: index real .md files in their original locations.
@@ -136,6 +138,15 @@ export function useWorkspace(): WorkspaceApi {
     setNotes(prev => prev.map(n => (n.folderId === id ? main.Note.createFrom({ ...n, folderId: '' }) : n)));
   }, [reload]);
 
+  const moveNote = useCallback(async (id: string, targetFolderId: string) => {
+    const cur = notesRef.current.find(n => n.id === id);
+    if (!cur || cur.folderId === targetFolderId) return;
+    const moved = await MoveNote(id, targetFolderId);
+    // The note id can change (embedded↔linked transitions), so reload the merged
+    // tree and select the moved note in its new identity.
+    await reload(moved.id);
+  }, [reload]);
+
   const setBody = useCallback((id: string, body: string) => {
     setNotes(prev => prev.map(n => (n.id === id ? main.Note.createFrom({ ...n, body }) : n)));
     setSaving(true);
@@ -164,7 +175,7 @@ export function useWorkspace(): WorkspaceApi {
 
   return {
     folders, notes, activeId, activeNote, freshNoteId, saving, loaded,
-    select, newNote, newFolder, renameNote, renameFolder, removeNote, removeFolder, setBody, flush,
+    select, newNote, newFolder, renameNote, renameFolder, removeNote, removeFolder, moveNote, setBody, flush,
     openFolder, openFile, closeLink,
   };
 }
